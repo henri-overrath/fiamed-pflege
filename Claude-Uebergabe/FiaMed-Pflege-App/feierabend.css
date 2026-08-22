@@ -4,8 +4,9 @@
   position: fixed;
   inset: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  padding-top: 9vh;
   pointer-events: none;
   z-index: 50;
   opacity: 0;
@@ -15,7 +16,7 @@
   opacity: 1;
 }
 #feierabendOverlay h2 {
-  font-size: clamp(38px, 10vw, 64px);
+  font-size: clamp(28px, 7vw, 46px);
   color: #fff;
   margin: 0;
   font-weight: 800;
