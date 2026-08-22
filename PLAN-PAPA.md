@@ -49,11 +49,11 @@ ist jetzt öffentlich**, siehe Warnung oben in `CLAUDE.md`.
       WebAuthn-Umweg für eine reine PWA), noch offen.
 - [x] ~~**Lokale Daten verschlüsseln** (WebCrypto, Schlüssel aus der PIN abgeleitet).~~
       **Live seit 22.08.2026** — `localStorage['fiamed-pflege-v2']` liegt nur noch als
-      AES-256-GCM-Chiffrat vor. **Gilt nur für `index.html`/`app.js`, NICHT für die einzelne
-      `FiaMed-Pflege.html`-Datei** — die lädt weiterhin unverschlüsselt. Empfehlung: diese
-      Einzeldatei nicht mehr für die Tante empfehlen, stattdessen die gehostete `index.html`
-      nutzen (siehe Hosting-Punkt unten) — echtes Nachrüsten des PIN-Schutzes in der
-      Einzeldatei ist ein eigener, größerer Umbau (alles inline, kein trennbares „Zimmer").
+      AES-256-GCM-Chiffrat vor.
+- [x] ~~**`FiaMed-Pflege.html`-Einzeldatei** — konnte strukturell nicht denselben PIN-Schutz
+      bekommen (alles inline, kein trennbares „Zimmer").~~ **Gelöscht 22.08.2026** — statt
+      Warnhinweis einfach entfernt (Quelle + Release), da ohnehin nicht mehr empfohlen.
+      README verweist jetzt nur noch auf die Live-Adresse.
 - [ ] **Export nur verschlüsselt** — der JSON-Export ist derzeit eine Klartextdatei mit allen Patientendaten.
 - [ ] **Retention:** automatisches Löschen alter Besuchsdaten nach fester Frist (Datenminimierung).
 - [ ] **Teilen-Knopf entschärfen:** „Bericht an Chefin teilen" überträgt volle Klartextnamen

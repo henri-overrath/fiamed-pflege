@@ -4,11 +4,9 @@ Lokale, responsive Pflege-Tour-App. **Live unter https://henri-overrath.github.i
 — dort mit PIN-Sperre und Verschlüsselung der gespeicherten Daten geschützt, siehe
 `PWA-VEROEFFENTLICHEN.md`.
 
-> ⚠️ **Die eigenständige Datei `FiaMed-Pflege.html` ist NICHT geschützt.** Sie funktioniert
-> zwar auch nach dem Teilen oder Entpacken zuverlässig, weil Design und Funktionen in einer
-> einzigen Datei stecken — aber genau deshalb lässt sich die PIN-Sperre technisch nicht in
-> sie einbauen, ohne die Datei komplett neu zu strukturieren. Bitte nicht mehr für echte
-> Patientendaten verwenden, solange das nicht nachgezogen ist.
+Die frühere eigenständige Einzeldatei `FiaMed-Pflege.html` (ohne PIN-Schutz, da technisch
+nicht sinnvoll nachrüstbar) wurde am 22.08.2026 entfernt — bitte nur noch die Live-Adresse
+oben verwenden.
 
 Alle Daten werden im lokalen Browser-Speicher gesichert (bei `index.html` verschlüsselt).
 Für eine spätere native Mac-/iPhone-Version kann dieselbe Oberfläche z. B. mit Capacitor
