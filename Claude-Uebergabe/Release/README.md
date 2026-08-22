@@ -1,8 +1,18 @@
 # FiaMed Pflege-App
 
-Lokale, responsive Pflege-Tour-App. Für Mac und iPhone bitte bevorzugt die eigenständige Datei `FiaMed-Pflege.html` in Safari öffnen. Sie enthält Design und Funktionen in einer einzigen Datei und funktioniert daher auch nach dem Teilen oder Entpacken zuverlässig. `index.html` bleibt für den Projektordner erhalten.
+Lokale, responsive Pflege-Tour-App. **Bitte die gehostete `index.html`-Fassung benutzen**
+(siehe `PWA-VEROEFFENTLICHEN.md`) — sie ist seit August 2026 mit einer PIN-Sperre und
+Verschlüsselung der gespeicherten Daten geschützt.
 
-Alle Daten werden im lokalen Browser-Speicher gesichert. Für eine spätere native Mac-/iPhone-Version kann dieselbe Oberfläche z. B. mit Capacitor verpackt werden; Apple-Karten-Links sind bereits integriert.
+> ⚠️ **Die eigenständige Datei `FiaMed-Pflege.html` ist NICHT geschützt.** Sie funktioniert
+> zwar auch nach dem Teilen oder Entpacken zuverlässig, weil Design und Funktionen in einer
+> einzigen Datei stecken — aber genau deshalb lässt sich die PIN-Sperre technisch nicht in
+> sie einbauen, ohne die Datei komplett neu zu strukturieren. Bitte nicht mehr für echte
+> Patientendaten verwenden, solange das nicht nachgezogen ist.
+
+Alle Daten werden im lokalen Browser-Speicher gesichert (bei `index.html` verschlüsselt).
+Für eine spätere native Mac-/iPhone-Version kann dieselbe Oberfläche z. B. mit Capacitor
+verpackt werden; Apple-Karten-Links sind bereits integriert.
 
 ## Funktionen
 

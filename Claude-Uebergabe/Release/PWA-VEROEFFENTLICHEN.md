@@ -17,4 +17,11 @@
 
 ## Wichtiger Hinweis zu Daten
 
-Patienten-, Tour- und Materialdaten werden nur im Browser-Speicher des jeweiligen Geräts gesichert. Sie werden nicht über den Link zwischen Geräten synchronisiert. Für ein neues Gerät bitte die Funktion **Daten exportieren** und anschließend **Daten importieren** verwenden.
+Patienten-, Tour- und Materialdaten werden nur im Browser-Speicher des jeweiligen Geräts gesichert (seit August 2026 verschlüsselt hinter einer PIN). Sie werden nicht über den Link zwischen Geräten synchronisiert. Für ein neues Gerät bitte die Funktion **Daten exportieren** und anschließend **Daten importieren** verwenden.
+
+## Beim ersten Öffnen
+
+Die App fragt beim ersten Start nach einer PIN (4–8 Ziffern) und zeigt dabei einen
+**Wiederherstellungscode** an — den unbedingt notieren und sicher aufbewahren. Es gibt keine
+Mail-Zurücksetzung, weil bewusst kein Server im Spiel ist. Bei jedem weiteren Öffnen wird die
+PIN abgefragt.
