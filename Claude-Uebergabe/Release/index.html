@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#2b6df3" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="FiaMed Pflege" />
+  <title>FiaMed Pflege</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="extended.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">✚</span><span>FiaMed <b>Pflege</b></span></div>
+      <nav id="nav" aria-label="Hauptnavigation">
+        <button class="nav-item active" data-view="home">⌂ <span>Übersicht</span></button>
+        <button class="nav-item" data-view="dayplan">▣ <span>Tagesplan</span></button>
+        <button class="nav-item" data-view="patients">♙ <span>Patienten</span></button>
+        <button class="nav-item" data-view="materials">▤ <span>Material</span></button>
+      </nav>
+      <div class="sidebar-foot"><span class="online-dot"></span> Alle Daten werden lokal gespeichert</div>
+    </aside>
+    <main class="main-content">
+      <header class="mobile-header"><div class="brand"><span class="brand-mark">✚</span>FiaMed</div><button id="themeToggle" class="icon-btn" aria-label="Darstellung wechseln">◐</button></header>
+      <div class="global-tools"><button id="menuToggle" class="menu-toggle" aria-label="Menü öffnen">☰</button><button id="homeShortcut" class="home-shortcut" aria-label="Zur Startseite">⌂</button><label class="global-search"><span>⌕</span><input id="globalSearch" autocomplete="off" placeholder="Patienten suchen … z. B. Herr Fischer"><kbd>⌘ K</kbd></label><button id="openPilot" class="pilot-trigger">🩺 <span>PflegePilot</span></button></div>
+      <div id="searchResults" class="search-results" hidden></div>
+      <section id="home" class="view active"></section>
+      <section id="dayplan" class="view"></section>
+      <section id="patients" class="view"></section>
+      <section id="materials" class="view"></section>
+      <section id="todayMaterials" class="view"></section>
+      <section id="reports" class="view"></section>
+      <section id="statistics" class="view"></section>
+      <section id="week" class="view"></section>
+      <section id="calendar" class="view"></section>
+      <section id="inventory" class="view"></section>
+      <section id="settings" class="view"></section>
+      <section id="worktime" class="view"></section>
+      <section id="dashboard" class="view"></section>
+      <section id="month" class="view"></section>
+    </main>
+    <nav id="mobileNav" class="mobile-nav" aria-label="Mobile Navigation"></nav>
+  </div>
+  <dialog id="modal"><div id="modalContent"></div></dialog>
+  <aside id="pilot" class="pilot" aria-label="PflegePilot" aria-hidden="true"></aside>
+  <div id="toast" role="status"></div>
+  <script src="app.js"></script>
+  <script src="pwa.js"></script>
+  <link rel="stylesheet" href="planning.css" />
+  <link rel="stylesheet" href="tour.css" />
+  <link rel="stylesheet" href="recurring.css" />
+  <link rel="stylesheet" href="insights.css" />
+  <link rel="stylesheet" href="polish.css" />
+  <link rel="stylesheet" href="home-redesign.css" />
+  <link rel="stylesheet" href="mobile-polish.css" />
+  <link rel="stylesheet" href="tour-end.css" />
+  <link rel="stylesheet" href="home-shortcut.css" />
+  <link rel="stylesheet" href="report-supply.css" />
+  <link rel="stylesheet" href="pilot-upgrade.css" />
+  <link rel="stylesheet" href="report-polish.css" />
+</body>
+</html>
