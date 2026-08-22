@@ -1,0 +1,37 @@
+name: Auf GitHub Pages veröffentlichen
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Claude-Uebergabe/Release/**'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+      - name: Pages konfigurieren
+        uses: actions/configure-pages@v5
+      - name: Release-Ordner als Pages-Inhalt hochladen
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'Claude-Uebergabe/Release'
+      - name: Veröffentlichen
+        id: deployment
+        uses: actions/deploy-pages@v4
