@@ -32,6 +32,22 @@ Die App soll für die Tante (und vielleicht ihre Chefin) im **Alltag nützlich**
 Es geht **nicht** darum, ein großes Produkt oder eine Firma daraus zu machen.
 Kleine Verbesserungen, die man sofort sieht, sind mehr wert als große Umbauten.
 
+## 🌿 Git-Regel: für jede Aufgabe einen eigenen, neuen Branch
+
+**Bevor mit einer neuen Aufgabe begonnen wird: einen eigenen Branch anlegen**, z. B.
+`git checkout -b feature/mein-neues-ding` (oder `fix/...` für Fehlerbehebungen) — **nicht**
+einfach auf dem Branch weiterarbeiten, der gerade zufällig ausgecheckt ist.
+
+**Warum das wichtig ist:** Am 22.08.2026 haben zwei Claude-Sitzungen (Henris und Papas)
+gleichzeitig im selben lokalen Ordner gearbeitet. Dabei sind Branches durcheinandergeraten
+und ein Commit hat versehentlich fremde, unfertige Änderungen mitgenommen — reparierbar,
+aber unnötig riskant. Ein eigener Branch pro Aufgabe verhindert das von vornherein.
+
+**Vor dem Loslegen kurz prüfen:** Zeigt `git status` bereits Änderungen an Dateien, die
+nichts mit der eigenen Aufgabe zu tun haben, oder ist der Branch-Name unbekannt (nicht
+selbst gewählt) — **stoppen und nachfragen**, statt einfach weiterzumachen. Das kann ein
+Zeichen sein, dass eine andere Sitzung gerade im selben Ordner arbeitet.
+
 ## Wie mit Henri gearbeitet wird
 
 - **Auf Deutsch, und in einfachen Worten.** Erkläre kurz, was du gerade machst und warum.
@@ -39,6 +55,25 @@ Kleine Verbesserungen, die man sofort sieht, sind mehr wert als große Umbauten.
 - **Zeigen, nicht nur beschreiben.** Nach einer Änderung sagen, wo man sie in der App sieht.
 - **Nichts kaputtmachen:** Vorhandene Funktionen bleiben, außer Henri will es ausdrücklich anders.
 - Wenn etwas nicht geht, ehrlich sagen — und einen einfacheren Weg vorschlagen.
+
+## 🔒 PIN-Sperre + Verschlüsselung (seit 22.08.2026 LIVE)
+
+Die App ist jetzt beim Start hinter einer PIN gesperrt, und die gespeicherten Daten liegen
+verschlüsselt auf der Platte statt im Klartext.
+
+- **`index.html` lädt `app.js` NICHT mehr direkt.** Stattdessen steht dort
+  `<script src="lock.js">`. `lock.js` zeigt zuerst die PIN-Abfrage und hängt `app.js` erst
+  per JavaScript nach, sobald die PIN stimmt. **Diese Struktur nie rückgängig machen** —
+  wer `<script src="app.js">` wieder direkt einfügt, schaltet die Sperre komplett ab, ohne
+  dass es auffällt.
+- `app.js` selbst wurde **nicht verändert** und merkt vom Umbau nichts — `lock.js` schiebt
+  sich zwischen `app.js` und den Browser-Speicher und ver-/entschlüsselt dabei unsichtbar.
+- **`lock.js` ist Papa-Bereich** (Kryptografie, Schlüssel-Handling). Henri kann in `app.js`
+  weiterbauen wie gewohnt — an `lock.js` bitte nichts ändern, ohne vorher zu fragen.
+- Es gibt keinen Passwort-Reset per Mail (kein Server!) — stattdessen einen einmaligen
+  Wiederherstellungscode, der bei der Ersteinrichtung angezeigt wird. „PIN ändern" gibt es
+  in den Einstellungen.
+- Details/Testprotokoll: siehe Commits `e662504`, `838ffa4`, `2e50f14` in der Git-Historie.
 
 ## Harte Regeln (nicht verletzen)
 
@@ -68,8 +103,7 @@ Kleine Verbesserungen, die man sofort sieht, sind mehr wert als große Umbauten.
   **maßgebliche Arbeitsstand**. `Claude-Uebergabe/Release/` ist die Kopie, die zu Netlify
   hochgeladen wird. Nach Änderungen muss der Release-Ordner neu aus der Quelle erzeugt werden —
   sonst laufen die beiden auseinander (ist schon einmal passiert und hat die Wochenansicht zerstört).
-- **Service Worker:** Nach jeder Änderung an veröffentlichten Dateien die Cache-Version in
-  `service-worker.js` hochzählen (`fiamed-pflege-pwa-v9` → `v10`), sonst sehen Nutzer die alte Version.
+- **Service Worker:** Nach jeder Änderung an veröffentlichten Dateien die Zahl in `const CACHE = 'fiamed-pflege-pwa-vXX'` (oben in `service-worker.js`) um eins hochzählen, sonst sehen Nutzer die alte Version.
 - **Kein Build-Schritt, keine Bibliotheken.** Reines HTML/CSS/JavaScript. Bitte so lassen —
   das hält die App einfach und schnell.
 - **Daten liegen in `localStorage` unter `fiamed-pflege-v2`.** Vorsicht bei Änderungen am

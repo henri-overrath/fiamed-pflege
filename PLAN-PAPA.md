@@ -38,15 +38,28 @@ Bedingung solange: Repo bleibt privat, und es wird **nichts neu deployed**, bevo
 
 ## Stufe 1 · Fundament ohne Server (ein Wochenende)
 
-- [ ] **App-Sperre beim Öffnen** (PIN / Face-ID) — wirksamster Einzelschutz: verlorenes Gerät = keine Daten.
-- [ ] **Lokale Daten verschlüsseln** (WebCrypto, Schlüssel aus der PIN abgeleitet).
-      Heute liegt alles im Klartext im `localStorage` unter `fiamed-pflege-v2`.
+- [x] ~~**App-Sperre beim Öffnen** (PIN).~~ **Live seit 22.08.2026** (Commits `e662504`,
+      `838ffa4`, `2e50f14`, gemergt auf `main`). PIN 4–8 Ziffern, „PIN ändern" in den
+      Einstellungen, einmaliger Wiederherstellungscode statt Mail-Reset. **Face-ID folgt
+      über die Capacitor-Hülle** (native Secure-Storage ist zuverlässiger als der Browser-
+      WebAuthn-Umweg für eine reine PWA), noch offen.
+- [x] ~~**Lokale Daten verschlüsseln** (WebCrypto, Schlüssel aus der PIN abgeleitet).~~
+      **Live seit 22.08.2026** — `localStorage['fiamed-pflege-v2']` liegt nur noch als
+      AES-256-GCM-Chiffrat vor. **Gilt nur für `index.html`/`app.js`, NICHT für die einzelne
+      `FiaMed-Pflege.html`-Datei** — die lädt weiterhin unverschlüsselt. Empfehlung: diese
+      Einzeldatei nicht mehr für die Tante empfehlen, stattdessen die gehostete `index.html`
+      nutzen (siehe Hosting-Punkt unten) — echtes Nachrüsten des PIN-Schutzes in der
+      Einzeldatei ist ein eigener, größerer Umbau (alles inline, kein trennbares „Zimmer").
 - [ ] **Export nur verschlüsselt** — der JSON-Export ist derzeit eine Klartextdatei mit allen Patientendaten.
 - [ ] **Retention:** automatisches Löschen alter Besuchsdaten nach fester Frist (Datenminimierung).
 - [ ] **Teilen-Knopf entschärfen:** „Bericht an Chefin teilen" überträgt volle Klartextnamen
       per WhatsApp. Initialen statt voller Namen wären ein billiger, echter Gewinn.
       (Ist-Zustand ohne App ist nicht besser — die Chefin schickt die Liste selbst per WhatsApp.)
 - [ ] **Datenschutzhinweis in der App:** welche Daten wo liegen, wer sie sieht, wie man sie löscht.
+- [ ] **Hosting:** `index.html` (mit PIN-Schutz) über eine echte `https://`-Adresse bereitstellen
+      (Netlify, wie in `Claude-Uebergabe/FiaMed-Pflege-App/PWA-VEROEFFENTLICHEN.md` beschrieben).
+      Erst danach ist „Zum Home-Bildschirm hinzufügen" zuverlässig nutzbar, und erst danach
+      macht die einzelne `FiaMed-Pflege.html`-Datei als Empfehlung keinen Sinn mehr.
 
 ## Stufe 2 · Nur wenn die Chefin wirklich mitmachen will
 
