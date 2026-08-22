@@ -1,8 +1,8 @@
 # FiaMed Pflege-App
 
-Lokale, responsive Pflege-Tour-App. **Bitte die gehostete `index.html`-Fassung benutzen**
-(siehe `PWA-VEROEFFENTLICHEN.md`) — sie ist seit August 2026 mit einer PIN-Sperre und
-Verschlüsselung der gespeicherten Daten geschützt.
+Lokale, responsive Pflege-Tour-App. **Live unter https://henri-overrath.github.io/fiamed-pflege/**
+— dort mit PIN-Sperre und Verschlüsselung der gespeicherten Daten geschützt, siehe
+`PWA-VEROEFFENTLICHEN.md`.
 
 > ⚠️ **Die eigenständige Datei `FiaMed-Pflege.html` ist NICHT geschützt.** Sie funktioniert
 > zwar auch nach dem Teilen oder Entpacken zuverlässig, weil Design und Funktionen in einer

@@ -90,13 +90,30 @@ verschlüsselt auf der Platte statt im Klartext.
 - Es gibt keinen Passwort-Reset per Mail (kein Server!) — stattdessen einen einmaligen
   Wiederherstellungscode, der bei der Ersteinrichtung angezeigt wird. „PIN ändern" gibt es
   in den Einstellungen.
-- Details/Testprotokoll: siehe Commits `e662504`, `838ffa4`, `2e50f14` in der Git-Historie.
+- Details/Testprotokoll: Commit „PIN-Sperre + lokale Verschlüsselung (Stufe 1, Papa-Plan)"
+  (die genaue Prüfsumme hat sich durch die Historienbereinigung vom 22.08.2026 geändert,
+  einfach im Log danach suchen: `git log --oneline --all --grep=PIN-Sperre`).
+
+## ⚠️ Das Repository ist seit 22.08.2026 ÖFFENTLICH
+
+Grund: Nur so funktioniert das kostenlose automatische Hosting (GitHub Pages, siehe
+`PWA-VEROEFFENTLICHEN.md`) — private Repos brauchen dafür ein bezahltes GitHub-Konto.
+**Das heißt: Alles, was in dieses Repo committet wird, ist ab sofort für jeden im Internet
+einsehbar — nicht nur theoretisch „landet irgendwann auf GitHub", sondern sofort, mit
+jedem Push.** Regel 1 unten ist damit keine Vorsichtsmaßnahme mehr, sondern die einzige
+Grenze zwischen echten Patientendaten und dem offenen Internet.
+
+Vorgeschichte: Ursprünglich standen zwölf echte, von der Tante tatsächlich genutzte
+Patientennamen als Startbelegung im Code (`const names=[...]` in `app.js`). Die wurden am
+22.08.2026 entfernt UND die komplette Git-Historie wurde bereinigt (`git filter-repo`,
+danach Force-Push) — deshalb stimmen alte Commit-Hashes aus früheren Notizen nicht mehr.
 
 ## Harte Regeln (nicht verletzen)
 
 1. **Niemals echte Patientendaten in den Code schreiben.** Keine echten Namen, Adressen,
    Telefonnummern oder Diagnosen — auch nicht als Beispiel oder Testdaten. Nur erfundene Namen
-   (Frau Muster, Herr Beispiel). Alles, was im Code steht, landet auf GitHub und im Internet.
+   (Frau Muster, Herr Beispiel). Das Repo ist öffentlich — alles, was im Code steht, ist
+   sofort für jeden im Internet sichtbar, nicht nur „irgendwann".
 2. **Alle Daten bleiben auf dem Gerät.** Keine Cloud, kein Server, keine Datenbank im Internet,
    keine Anmeldung, kein Hochladen von Daten — **außer Papa hat es ausdrücklich freigegeben**.
    Das ist kein Techniklimit, sondern Gesetz: Gesundheitsdaten dürfen nicht einfach weggeschickt werden.

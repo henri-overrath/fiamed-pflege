@@ -15,21 +15,25 @@ Der Wunsch „Account-Login + Datenbank" enthält zwei verschiedene Dinge, die g
 - **Teilen braucht einen Server** (Chefin verteilt die Tour an zwei Fachkräfte). Das ist ein
   Feature-Wunsch, kein Sicherheitswunsch — und erst dran, wenn die Chefin die App wirklich nutzen will.
 
-**Reihenfolge laut Entscheidung vom 22.08.2026: erst Umbau/Features, dann Stufe 0.**
-Bedingung solange: Repo bleibt privat, und es wird **nichts neu deployed**, bevor Stufe 0 erledigt ist.
+**Update 22.08.2026, Abend:** Stufe 0 (Namen raus + Historie bereinigt) ist erledigt — war
+zwingend, weil GitHub Pages (Hosting-Lösung) ein öffentliches Repo voraussetzt. **Das Repo
+ist jetzt öffentlich**, siehe Warnung oben in `CLAUDE.md`.
 
 ---
 
 ## Stufe 0 · Aufräumen (~2 Stunden)
 
-- [ ] **12 echte Patientennamen aus `app.js` entfernen** und durch erfundene ersetzen.
-      Sie stehen als Startdaten im Code (Suche im Quelltext nach `'Herr ` bzw. `'Frau `).
-      Gesundheitsdaten nach Art. 9 DSGVO — die Namen werden hier bewusst nicht wiederholt.
-- [ ] **Git-Historie bereinigen** — ein neuer Commit genügt nicht, die Namen bleiben in der
-      Historie. Erfordert Force-Push in Henris Repo → vorher mit ihm absprechen.
-- [ ] **Deployment prüfen:** Wo läuft die App tatsächlich? Die Beispiel-URL aus der Doku
-      (`fiamed-pflege.netlify.app`) ist unbelegt (404). Falls öffentlich erreichbar:
-      nach der Bereinigung neu deployen.
+- [x] ~~**12 echte Patientennamen aus `app.js` entfernen** und durch erfundene ersetzen.~~
+      **Erledigt 22.08.2026** — Startbelegung ist jetzt leer (neue Geräte starten mit
+      0 Patienten), zwei Beispieltexte mit echtem Namen ebenfalls ersetzt.
+- [x] ~~**Git-Historie bereinigen** — Force-Push in Henris Repo.~~ **Erledigt 22.08.2026**
+      mit `git filter-repo --replace-text`, unabhängig via Frisch-Klon verifiziert.
+      **Henri musste danach neu klonen** (alte Commit-Hashes ungültig).
+- [x] ~~**Deployment:** echte, funktionierende Hosting-Adresse.~~ **Erledigt 22.08.2026** —
+      https://henri-overrath.github.io/fiamed-pflege/ (GitHub Pages, automatisch bei jedem
+      Push). Voraussetzung dafür: Repo musste öffentlich werden (private Repos haben bei
+      GitHub kein kostenloses Pages) — deshalb war die Namens-/Historienbereinigung davor
+      zwingend, nicht mehr optional.
 - [x] ~~**Release-Bug fixen:** `Release/app.js` stürzte in `renderWeek` ab
       (`ReferenceError: _ is not defined`).~~ **Von Henri erledigt** (PR #1, 22.08.2026) —
       Release und Quelle sind wieder identisch, Cache-Version steht auf `v10`.
@@ -56,10 +60,12 @@ Bedingung solange: Repo bleibt privat, und es wird **nichts neu deployed**, bevo
       per WhatsApp. Initialen statt voller Namen wären ein billiger, echter Gewinn.
       (Ist-Zustand ohne App ist nicht besser — die Chefin schickt die Liste selbst per WhatsApp.)
 - [ ] **Datenschutzhinweis in der App:** welche Daten wo liegen, wer sie sieht, wie man sie löscht.
-- [ ] **Hosting:** `index.html` (mit PIN-Schutz) über eine echte `https://`-Adresse bereitstellen
-      (Netlify, wie in `Claude-Uebergabe/FiaMed-Pflege-App/PWA-VEROEFFENTLICHEN.md` beschrieben).
-      Erst danach ist „Zum Home-Bildschirm hinzufügen" zuverlässig nutzbar, und erst danach
-      macht die einzelne `FiaMed-Pflege.html`-Datei als Empfehlung keinen Sinn mehr.
+- [x] ~~**Hosting:** `index.html` (mit PIN-Schutz) über eine echte `https://`-Adresse.~~
+      **Erledigt 22.08.2026** — https://henri-overrath.github.io/fiamed-pflege/, GitHub
+      Pages, automatisch via `.github/workflows/deploy-pages.yml` bei jedem Push. Getestet:
+      Service Worker registriert, Manifest lädt, `display: standalone`, PIN-Ersteinrichtung
+      erscheint korrekt. **Offen:** Tante muss die App auf ihrem Gerät neu über diesen Link
+      installieren (die alte `FiaMed-Pflege.html`-Installation ist weiterhin ungeschützt).
 
 ## Stufe 2 · Nur wenn die Chefin wirklich mitmachen will
 
