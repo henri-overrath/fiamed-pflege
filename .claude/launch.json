@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "fiamed-app",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4173", "--directory", "Claude-Uebergabe/FiaMed-Pflege-App"],
+      "port": 4173
+    }
+  ]
+}
