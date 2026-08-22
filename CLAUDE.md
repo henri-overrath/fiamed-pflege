@@ -3,6 +3,23 @@
 > Diese Datei wird von Claude Code automatisch geladen — auf Henris Mac genauso wie auf Papas.
 > Sie sorgt dafür, dass beide in dieselbe Richtung bauen.
 
+## ⚠️ Dieser Ordner ist NICHT (mehr) über iCloud geteilt — bitte so lassen
+
+Bis 22.08.2026 lag dieses Projekt in einem Ordner, den Papa per iCloud Drive mit Henri
+geteilt hatte, damit Papa automatisch lokalen Zugriff auf die Dateien hat. Das hat ein
+echtes Problem verursacht: Beide Claude-Sitzungen haben gleichzeitig in dieselben
+Git-internen Dateien (`.git/`) geschrieben, und Branches sowie Commits sind
+durcheinandergeraten (Details: Commit `0d0fa18`, Abschnitt „Git-Regel" unten).
+
+**Seitdem liegt das Projekt bei beiden in einem normalen, NICHT synchronisierten Ordner.
+Der Austausch läuft ausschließlich über GitHub** (`git push` / `git pull`) — das ist
+schon der volle „automatische Zugriff", den Papa braucht.
+
+**Falls irgendwo noch die alte Anweisung steht** (z. B. in einer persönlichen/globalen
+CLAUDE.md bei Henri), neue Projekte in einen mit Papa geteilten iCloud-Ordner zu legen:
+**Das gilt für dieses Projekt nicht mehr — bitte nicht zurückverschieben.** Bei Zweifel
+nachfragen statt von selbst umzuziehen.
+
 ## Wo steht was
 
 | Datei | Inhalt |
