@@ -1,0 +1,55 @@
+/* Konfetti & "Feierabend!"-Meldung, wenn der letzte Patient des Tages erledigt ist */
+
+#feierabendOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 9vh;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0;
+  transition: opacity .3s ease;
+}
+#feierabendOverlay.show {
+  opacity: 1;
+}
+#feierabendOverlay h2 {
+  font-size: clamp(28px, 7vw, 46px);
+  color: #fff;
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: -.03em;
+  text-shadow: 0 6px 26px rgba(20, 40, 90, .35);
+  background: linear-gradient(120deg, var(--blue), #5aa0ff);
+  padding: 22px 34px;
+  border-radius: 22px;
+  transform: scale(.7);
+  opacity: 0;
+  animation: feierabend-pop-in .55s cubic-bezier(.2, 1.4, .4, 1) forwards;
+}
+@keyframes feierabend-pop-in {
+  0%   { transform: scale(.6); opacity: 0; }
+  60%  { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.confetti-piece {
+  position: fixed;
+  top: -16px;
+  width: 9px;
+  height: 15px;
+  z-index: 49;
+  opacity: .95;
+  pointer-events: none;
+  animation: confetti-fall linear forwards;
+}
+@keyframes confetti-fall {
+  to { transform: translateY(112vh) translateX(var(--drift)) rotate(var(--spin)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti-piece { animation: none; display: none; }
+  #feierabendOverlay h2 { animation: none; transform: none; opacity: 1; }
+}
