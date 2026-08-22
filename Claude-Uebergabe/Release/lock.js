@@ -138,9 +138,79 @@
   // ---------- App laden (erst NACH Entsperrung) ----------
   function bootApp() {
     hideOverlay();
+    setupPinChangeUI();
     const s = document.createElement('script');
     s.src = APP_SCRIPT_SRC;
     document.body.appendChild(s);
+  }
+
+  // ---------- "PIN ändern" in den Einstellungen ----------
+  // app.js baut #settings bei jedem Aufruf komplett neu (innerHTML=...) und
+  // würde ein einmal eingefügtes Panel dabei wieder löschen. Ein
+  // MutationObserver setzt es deshalb nach jedem Neu-Rendern erneut ein.
+  function setupPinChangeUI() {
+    const settingsEl = document.getElementById('settings');
+    if (!settingsEl) return;
+    const inject = () => {
+      if (document.getElementById('pinChangePanel')) return;
+      const panel = document.createElement('div');
+      panel.id = 'pinChangePanel';
+      panel.className = 'panel';
+      panel.style.marginTop = '18px';
+      panel.innerHTML = `
+        <div class="section-head"><div><h2>PIN ändern</h2><p>Schützt weiterhin dieselben Daten — der Wiederherstellungscode bleibt dabei gültig.</p></div></div>
+        <form id="pinChangeForm" class="form-grid">
+          <label>Aktuelle PIN<input type="password" inputmode="numeric" pattern="[0-9]*" name="currentPin" autocomplete="current-password" required></label>
+          <label>Neue PIN<input type="password" inputmode="numeric" pattern="[0-9]*" name="newPin1" autocomplete="new-password" required></label>
+          <label>Neue PIN bestätigen<input type="password" inputmode="numeric" pattern="[0-9]*" name="newPin2" autocomplete="new-password" required></label>
+          <p class="lock-error" id="pinChangeError" hidden></p>
+          <button type="submit" class="btn">PIN ändern</button>
+        </form>
+      `;
+      settingsEl.appendChild(panel);
+      document.getElementById('pinChangeForm').onsubmit = handlePinChangeSubmit;
+    };
+    inject();
+    new MutationObserver(inject).observe(settingsEl, { childList: true });
+  }
+
+  async function handlePinChangeSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const currentPin = form.currentPin.value;
+    const newPin1 = form.newPin1.value;
+    const newPin2 = form.newPin2.value;
+    const err = document.getElementById('pinChangeError');
+    err.hidden = true;
+
+    if (!/^\d{4,8}$/.test(newPin1)) { err.textContent = 'Die neue PIN muss aus 4 bis 8 Ziffern bestehen.'; err.hidden = false; return; }
+    if (newPin1 !== newPin2) { err.textContent = 'Die beiden neuen PINs stimmen nicht überein.'; err.hidden = false; return; }
+
+    const meta = loadLockMeta();
+    if (!meta) { err.textContent = 'Keine PIN eingerichtet.'; err.hidden = false; return; }
+
+    let masterKeyBytes;
+    try {
+      const currentWrapKey = await deriveWrappingKey(currentPin, meta.pinSalt, meta.pinIterations);
+      masterKeyBytes = await unwrapMasterKey(currentWrapKey, meta.pinWrapped);
+    } catch {
+      err.textContent = 'Die aktuelle PIN ist falsch.';
+      err.hidden = false;
+      return;
+    }
+
+    const newSalt = randomBytes(16);
+    const newWrapKey = await deriveWrappingKey(newPin1, bytesToBase64(newSalt), meta.pinIterations);
+    meta.pinSalt = bytesToBase64(newSalt);
+    meta.pinWrapped = await wrapMasterKey(newWrapKey, masterKeyBytes);
+    meta.failedAttempts = 0;
+    meta.lockedUntil = 0;
+    saveLockMeta(meta);
+
+    form.reset();
+    err.hidden = false;
+    err.style.color = 'var(--green, #26aa72)';
+    err.textContent = 'PIN wurde geändert.';
   }
 
   // ---------- UI ----------
