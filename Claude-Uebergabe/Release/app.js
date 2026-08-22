@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const KEY='fiamed-pflege-v2', LEGACY='fiamed-pflege-v1';
-  const names=['Herr Muster','Herr Beispiel','Herr Testpatient','Herr Muster','Herr Beispiel','Herr Testpatient','Frau Muster','Frau Beispiel','Frau Testpatient','Frau Muster','Frau Beispiel','Frau Testpatient'];
+  const names=[];
   const seedMaterials=['Zetuvit 10x10','Zetuvit 15x15','Zetuvit 20x20','Fixierbinde','Idealbinde','Mepilex Up','Mepilex 15x15','Mepilex 10x20','Acticoat','Cutimed Sorbact','Avelyn 10x10','Coflex'];
   const uid=()=>crypto.randomUUID(); const esc=(v='')=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); const $=(s,r=document)=>r.querySelector(s);
   const base=()=>({patients:names.map((name,order)=>({id:uid(),name,address:'',phone:'',notes:'',special:'',materials:[],priority:'normal',selected:false,status:'open',visit:null,visits:[],order})),materials:seedMaterials.map(name=>({id:uid(),name})),tourStartedAt:null,workOffset:0,kilometers:0,theme:'light',backups:[],reports:[]});
@@ -189,7 +189,7 @@
     else if(/losch|loesch|entfern/.test(n)){const m=state.materials.find(x=>n.includes(normal(x.name)));if(m){answer='Soll ich das Material '+m.name+' wirklich löschen?';confirmation=pilotConfirm('Material löschen','deleteMaterial',m.id)}else answer='Welchen Patienten oder welches Material möchten Sie löschen?';}
     else if(/navigation/.test(n)){if(p){navigate(p);answer='Ich öffne die Navigation für '+p.name+'.';}else answer='Für welchen Patienten soll ich die Navigation öffnen?';}
     else if(p){openPatient(p);answer='Ich habe die Details von '+p.name+' geöffnet.';}
-    else answer='Das habe ich noch nicht sicher verstanden. Sie können zum Beispiel fragen: „Welche Patienten fehlen?“, „Öffne Frau Beispiel“, „Wie viele Kilometer?“ oder „Zeige Material zum Nachbestellen“. Änderungen bestätige ich immer vorher.';
+    else answer='Das habe ich noch nicht sicher verstanden. Sie können zum Beispiel fragen: „Welche Patienten fehlen?“, „Öffne Frau Muster“, „Wie viele Kilometer?“ oder „Zeige Material zum Nachbestellen“. Änderungen bestätige ich immer vorher.';
     pilotMessage(answer,'assistant',confirmation);
   }
 
