@@ -1,0 +1,13 @@
+/* PflegePilot: klar sichtbar, ohne den Hintergrund zu verwischen */
+.pilot-trigger{min-height:48px;padding:0 20px;background:linear-gradient(135deg,#174a8d,#2f6df6);font-size:15px;letter-spacing:-.01em;box-shadow:0 10px 24px rgba(36,92,202,.25);transition:transform .18s ease,box-shadow .18s ease}
+.pilot-trigger:hover,.pilot-trigger:focus-visible{transform:translateY(-1px);box-shadow:0 14px 28px rgba(36,92,202,.32)}
+.pilot{width:min(620px,100vw);padding:28px 30px 24px;border-left:1px solid var(--line);background:linear-gradient(155deg,#fff 0%,#f8faff 100%);box-shadow:-18px 0 55px rgba(15,35,75,.22)}
+.pilot::before{content:"";height:5px;position:absolute;top:0;left:0;right:0;background:linear-gradient(90deg,#1f5fd5,#49a5ff,#3bc88b)}
+.pilot-head{padding:4px 0 18px;border-bottom:1px solid var(--line)}
+.pilot-title{font-size:27px;letter-spacing:-.04em;color:#17233b}.pilot-sub{font-size:13px;font-weight:700}
+.pilot-welcome{padding:15px 17px;border-radius:18px;background:linear-gradient(135deg,#edf4ff,#f5fbff);border:1px solid #d8e5ff;color:#2b3b58;line-height:1.45}
+.pilot-chat{padding:18px 0;gap:12px}.chat-message{max-width:90%;padding:13px 15px;border-radius:17px;background:#f2f5fb;color:#27344d;line-height:1.45}.chat-message.user{background:linear-gradient(135deg,#2768e8,#3d7cff);box-shadow:0 7px 15px rgba(39,104,232,.2)}
+.pilot-suggestions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;overflow:visible;padding:4px 0 13px}.pilot-suggestions button{min-height:42px;padding:9px 10px;border-radius:12px;background:#edf3ff;color:#245ece;border:1px solid #d4e2ff;font-weight:750;white-space:normal}.pilot-suggestions button:hover{background:#e3edff}
+.pilot-form{padding-top:14px;border-top:1px solid var(--line)}.pilot-form input{min-height:47px;border-radius:13px}.pilot-form .btn{min-height:47px;border-radius:13px}
+.pilot-confirm{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}.pilot-confirm button{border:0;border-radius:10px;padding:9px 12px;font:700 13px inherit;cursor:pointer}.pilot-confirm .confirm{background:#1f9d68;color:#fff}.pilot-confirm .cancel{background:#e9eef7;color:#53627a}
+@media(max-width:760px){.pilot-trigger{min-width:48px;padding:0 12px}.pilot{padding:22px 18px 18px}.pilot-title{font-size:25px}.pilot-suggestions{grid-template-columns:1fr 1fr}.pilot-form{position:sticky;bottom:0;background:inherit;padding-bottom:max(2px,env(safe-area-inset-bottom))}}

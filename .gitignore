@@ -1,0 +1,11 @@
+# macOS Systemdateien
+.DS_Store
+._*
+.Trashes
+
+# Editor-Dateien
+*.swp
+*.swo
+
+# temporäre Dateien
+*.tmp

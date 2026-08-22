@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="FiaMed Pflege">
+  <rect width="512" height="512" rx="112" fill="#2b6df3"/>
+  <rect x="88" y="88" width="336" height="336" rx="88" fill="#fff" opacity=".14"/>
+  <path d="M256 126c22 0 40 18 40 40v50h50c22 0 40 18 40 40s-18 40-40 40h-50v50c0 22-18 40-40 40s-40-18-40-40v-50h-50c-22 0-40-18-40-40s18-40 40-40h50v-50c0-22 18-40 40-40z" fill="#fff"/>
+</svg>

@@ -1,0 +1,6 @@
+@media (max-width: 760px) {
+  .tour-sort .danger {
+    grid-column: 1 / -1;
+    min-height: 48px;
+  }
+}
