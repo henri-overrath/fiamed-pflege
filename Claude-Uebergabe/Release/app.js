@@ -306,7 +306,11 @@
     const findOrCreatePatient=entry=>{
       const name=String(entry.name||'').trim();
       if(!name)return null;
-      let p=state.patients.find(x=>x.name.trim().toLowerCase()===name.toLowerCase());
+      let p=state.patients.find(x=>normal(x.name)===normal(name));
+      if(!p){
+        const best=fuzzyPatients(name).filter(o=>!o.x.archived)[0];
+        if(best&&confirm(`"${name}" wurde nicht exakt gefunden – ist das derselbe Patient wie der vorhandene "${best.x.name}" (${best.x.address||'keine Adresse hinterlegt'})?\n\nOK: als denselben Patienten übernehmen (keine Dublette anlegen).\nAbbrechen: "${name}" als neuen Patienten anlegen.`))p=best.x;
+      }
       if(!p){
         p={id:uid(),name,address:entry.address||'',phone:entry.phone||'',notes:'',dailyNote:'',nextHint:'',materials:[],priority:'normal',selected:false,status:'open',visit:null,visits:[],favorite:false,recurrence:'none',archived:false,photo:'',order:state.patients.length};
         state.patients.push(p);

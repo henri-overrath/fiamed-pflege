@@ -111,8 +111,13 @@ Senden, ein Tipp zum Empfangen.
   Material, Notiz) und öffnen die normale Teilen-Funktion — der Text geht über den Kanal, den
   die drei ohnehin nutzen (WhatsApp, SMS, Mail).
 - Empfangen läuft über „Tour empfangen" in den Einstellungen: Text einfügen, Codewort
-  eingeben, übernehmen. Unbekannte Patientennamen werden automatisch neu angelegt, bekannte
-  per Namensabgleich erkannt (keine Duplikate). Existiert für den Tag bereits eine Planung,
+  eingeben, übernehmen. Unbekannte Patientennamen werden automatisch neu angelegt. Bei
+  exakter Namensübereinstimmung wird der bestehende Patient automatisch erkannt (keine
+  Dublette). **Bei einem knappen, tippfehler-ähnlichen Treffer** (z. B. „Frau Musterr" vs.
+  „Frau Muster") fragt die App einmal kurz nach, statt automatisch zu entscheiden — das nutzt
+  dieselbe tippfehler-tolerante Suche (`fuzzyPatients`/`lev`), die auch die Suchleiste
+  verwendet. So bleiben wiederkehrende Patienten über mehrere Tourenpakete hinweg dieselbe
+  Person, ganz ohne geteilte IDs oder Server. Existiert für den Tag bereits eine Planung,
   fragt die App vor dem Überschreiben nach (Regel 6).
 - **`share.js` ist eigener Papa-Bereich** (PBKDF2 + AES-256-GCM, komplett unabhängig von
   `lock.js` und dessen PIN-Schlüssel) — bitte nichts daran ändern, ohne vorher zu fragen.
