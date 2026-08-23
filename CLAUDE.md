@@ -163,6 +163,17 @@ können — ein echter Wunsch aus ihrem Arbeitsalltag, kein Extra. DSGVO-technis
   hochgeladen wird. Nach Änderungen muss der Release-Ordner neu aus der Quelle erzeugt werden —
   sonst laufen die beiden auseinander (ist schon einmal passiert und hat die Wochenansicht zerstört).
 - **Service Worker:** Nach jeder Änderung an veröffentlichten Dateien die Zahl in `const CACHE = 'fiamed-pflege-pwa-vXX'` (oben in `service-worker.js`) um eins hochzählen, sonst sehen Nutzer die alte Version.
+  **Zwei zusätzliche Fallen, beide am 23.08.2026 live erlebt und behoben — nicht rückgängig machen:**
+  - Im `install`-Handler **nie** zu `caches.open(CACHE).then(cache => cache.addAll(APP_FILES))`
+    zurückwechseln. GitHub Pages sendet `Cache-Control: max-age=600` — ohne `{cache:'reload'}`
+    pro Datei übernimmt ein frisch installierter Service Worker sonst bis zu 10 Minuten alte,
+    aus dem normalen Browser-HTTP-Cache stammende Dateien in seinen eigenen (neuen!) Cache,
+    obwohl der Server längst die neue Version hat. Führte dazu, dass ein bereits ausgelieferter
+    Bugfix beim Nutzer trotz korrektem Update-Zyklus nicht ankam.
+  - `pwa.js` muss einen `controllerchange`-Listener behalten, der die Seite einmalig automatisch
+    neu lädt. Ohne den bleibt eine bereits offene/installierte Seite vom ALTEN Service Worker
+    kontrolliert, bis sie komplett geschlossen und neu geöffnet wird — ein einfaches „Neu laden"
+    reicht dafür strukturell oft nicht.
 - **Kein Build-Schritt, keine Bibliotheken.** Reines HTML/CSS/JavaScript. Bitte so lassen —
   das hält die App einfach und schnell.
 - **Daten liegen in `localStorage` unter `fiamed-pflege-v2`.** Vorsicht bei Änderungen am
