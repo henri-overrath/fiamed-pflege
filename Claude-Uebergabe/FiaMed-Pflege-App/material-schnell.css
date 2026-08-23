@@ -1,0 +1,92 @@
+/* Schnelle Materialerfassung: große Kästchen zum Antippen statt langem Formular */
+
+.quick-material {
+  padding: 22px 20px 20px;
+}
+.quick-material-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.quick-material-head b {
+  font-size: 15px;
+}
+.quick-material-head small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.chip-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+  margin: 16px 0 8px;
+}
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip-row[hidden] {
+  display: none;
+}
+.material-chip {
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-weight: 650;
+  font-size: 13.5px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  background: var(--card);
+  cursor: pointer;
+  user-select: none;
+}
+.material-chip input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.material-chip .chip-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  border: 2px solid var(--line);
+  flex: 0 0 auto;
+  position: relative;
+}
+.material-chip.on {
+  border-color: var(--green);
+  background: color-mix(in srgb, var(--green) 12%, var(--card));
+  color: var(--green);
+}
+.material-chip.on .chip-dot {
+  background: var(--green);
+  border-color: var(--green);
+}
+.material-chip.on .chip-dot::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.more-materials-toggle {
+  border: 0;
+  background: none;
+  color: var(--blue);
+  font-weight: 650;
+  font-size: 13px;
+  padding: 12px 0 0;
+  cursor: pointer;
+}
