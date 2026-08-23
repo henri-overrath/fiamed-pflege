@@ -90,6 +90,13 @@ Fotos landen im `state`-Objekt und werden dadurch automatisch von `lock.js` mitv
 
 ## Stufe 2 · Nur wenn die Chefin wirklich mitmachen will
 
+**Update 23.08.2026:** Der konkrete Wunsch „Chefin teilt Patienten den beiden Fachkräften zu,
+Sync aufs Handy" ist **nicht** über einen Server gelöst worden, sondern über ein
+verschlüsseltes Tourenpaket ohne Server (siehe `CLAUDE.md`, Abschnitt „🔄 Tourenaustausch ohne
+Server"). Diese Stufe-2-Server-Variante bleibt daher weiterhin offen/unnötig, solange dieser
+Weg für die Familie reicht — nur bei echtem Bedarf (z. B. viel mehr Fachkräfte, echte
+Echtzeit-Synchronisierung nötig) hierher zurückkommen.
+
 - [ ] **Zuerst das Gespräch führen, vor jeder Zeile Code.** Wenn die Tante die App beruflich mit
       echten Patientendaten nutzt, ist **der Pflegedienst** der datenschutzrechtlich Verantwortliche —
       nicht Henri, nicht Martin. In diesem Fall ein einfaches Gespräch: Die Chefin ist begeistert.
