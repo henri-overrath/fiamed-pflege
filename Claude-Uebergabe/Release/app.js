@@ -172,8 +172,9 @@
     pilotMessage(q,'user');
     let answer='',confirmation='';
     const openView=(id,label)=>{show(id);answer='Ich habe '+label+' geöffnet.'};
-    if(/^(hallo|hi|moin|gutenmorgen|gutentag|gutenabend)\b/.test(n)) answer='Hallo! Ich bin PflegePilot. Ich kann Ihre heutigen Aufgaben, Patienten, Materialien, Kilometer und Berichte direkt aus dieser App für Sie anzeigen.';
-    else if(/was.*(heute|fehlt)|patientenfehlen|offene.*patient/.test(n)) answer=allToday.length?'Heute sind '+allToday.length+' Patienten geplant. Noch offen: '+(openPatients.map(x=>x.name).join(', ')||'keine – alle Besuche sind erledigt')+'.':'Für heute ist noch keine Tour geplant.';
+    if(/^(hallo|hi|moin|guten\s*morgen|guten\s*tag|guten\s*abend)\b/i.test(q.trim())) answer='Hallo! Ich bin PflegePilot. Ich kann Ihre heutigen Aufgaben, Patienten, Materialien, Kilometer und Berichte direkt aus dieser App für Sie anzeigen.';
+    else if(/wiegehtes|wiegehts/.test(n)) answer='Mir geht’s gut, danke der Nachfrage! 😊 Ich bin hier, um bei Ihrer Tour, Patienten, Material oder dem Tagesbericht zu helfen – was brauchen Sie?';
+    else if(/was.*(heute|fehlt)|patientenfehlen|offene.*patient|nochoffen/.test(n)) answer=allToday.length?'Heute sind '+allToday.length+' Patienten geplant. Noch offen: '+(openPatients.map(x=>x.name).join(', ')||'keine – alle Besuche sind erledigt')+'.':'Für heute ist noch keine Tour geplant.';
     else if(/material.*(nachbestell|leer|brauche|heute|liste)|nachbestell/.test(n)){const groups=typeof reportMaterialGroups==='function'?reportMaterialGroups():[];const planned=[...new Set(allToday.flatMap(x=>x.materials||[]))];answer=groups.length?'Zum Nachbestellen: '+groups.map(x=>x.quantity+' × '+x.name+' für '+x.patient).join(', ')+'.':planned.length?'Für die heutige Tour vorgesehen: '+planned.join(', ')+'.':'Heute ist noch kein Material erfasst.';}
     else if(/kilometer/.test(n)) answer='Heute sind '+Number(state.kilometers||0).toFixed(1)+' Kilometer erfasst.';
     else if(/arbeitszeit|arbeite|stunden/.test(n)) answer='Ihre Arbeitszeit heute beträgt '+fmt(secs()-pauseSeconds())+'.';
