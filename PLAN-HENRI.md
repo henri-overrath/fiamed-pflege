@@ -27,8 +27,15 @@ Profis das machen. 👏
 - Das Wort „Abrechnung" aus dem Tagesbericht entfernt — **das hast du selbst erkannt**,
   weil es gegen eine Regel in dieser Datei verstößt. Genau so soll das laufen! 🎯
 - Neue Materialien gelten nicht mehr sofort fälschlich als „knapp"
+- 📞 Anruf- und Navigations-Knopf direkt auf der Patientenkarte
+- „Für nächstes Mal mitbringen" — Notizfeld beim Patienten
+- 📱 Seitliches Wegwischen auf dem Handy behoben (echter Bug, den du auf deinem eigenen
+  iPhone gefunden hast — [PR #18](https://github.com/henri-overrath/fiamed-pflege/pull/18))
+- ✉️ Neuer Menüpunkt „Fehler melden" — öffnet die Mail-App, ohne dass die Tante irgendwas
+  selbst eintippen muss ([PR #19](https://github.com/henri-overrath/fiamed-pflege/pull/19))
 
-**13 Verbesserungen an einem einzigen Tag.** Das ist ernsthaft beeindruckend.
+**15 Verbesserungen — und mit den beiden letzten hast du zum ersten Mal ganz allein einen
+echten Bug gefunden und ein eigenes Feature gebaut.** Ernsthaft beeindruckend. 👏
 
 ---
 
@@ -118,40 +125,32 @@ mitnehmen muss. Die App speichert das auch alles brav — aber sie **zeigt es un
 Auf der Karte steht nur der Name. Wenn du das reinbaust, sieht deine Tante endlich alles,
 während sie im Auto sitzt.
 
-**Das ist die nützlichste Idee auf dieser Liste.** 🥇
+**Das ist immer noch die nützlichste Idee auf dieser Liste.** 🥇
 
 ---
 
-## 🎉 2. Konfetti zum Feierabend
+## 🩺 2. PflegePilot rät manchmal falsch
 
 **Sag zu Claude:**
-> „Wenn der letzte Patient des Tages fertig ist, soll Konfetti über den Bildschirm fliegen
-> und groß ‚Feierabend!' erscheinen."
+> „Der PflegePilot soll nur noch die vier vorgeschlagenen Knöpfe anbieten. Das freie
+> Eingabefeld für eigene Fragen soll raus."
 
-**Warum das gut ist:** Deine Tante hat einen anstrengenden Job. Wenn sie abends fertig ist und
-die App feiert das mit ihr — das macht richtig Freude. Und Konfetti programmieren macht Spaß. 🎊
+**Warum das gut ist:** Auf die Frage „Wie viele Patienten habe ich heute noch offen?" hat
+der PflegePilot statt einer Antwort einfach irgendeine Patientenkarte geöffnet — er hat
+versucht, einen Namen aus der Frage herauszulesen, und lag daneben. Die vier Knöpfe
+funktionieren zuverlässig, die freie Texteingabe rät zu oft falsch. Weniger ist hier mehr.
 
 ---
 
-## 📞 3. Anrufen und Navigieren mit einem Tipp
+## 🏠 3. Nächster Patient groß auf der Startseite
 
 **Sag zu Claude:**
-> „Mach einen Anruf-Knopf und einen Navigations-Knopf direkt auf die Patientenkarte."
+> „Zeig oben auf der Startseite groß an, welcher Patient als Nächstes dran ist und um wie
+> viel Uhr."
 
-**Warum das gut ist:** Wenn deine Tante jemanden anrufen will, muss sie jetzt die Nummer
-suchen und abtippen. Mit einem Knopf geht das mit einem Tipp. Das spart ihr jeden Tag Zeit.
-
----
-
-## 👆 4. Material schneller eintragen
-
-**Sag zu Claude:**
-> „Wenn ich beim Patienten auf ‚Material erfassen' tippe, soll sofort nur die Materialliste
-> kommen — nicht das ganze Formular mit Name und Adresse."
-
-**Warum das gut ist:** Deine Tante steht beim Patienten und hat **Handschuhe an**. Gerade muss
-sie erst an Name, Adresse, Telefonnummer und vielem mehr vorbeiscrollen, bis endlich die
-Materialien kommen. Das nervt. Zwei Tipps sollten reichen.
+**Warum das gut ist:** Deine Tante öffnet die App oft nur kurz, um nachzusehen, wer als
+Nächstes kommt. Aktuell muss sie dafür erst in den Tagesplan wechseln. Ein Blick auf die
+Startseite sollte reichen.
 
 ---
 
@@ -159,17 +158,10 @@ Materialien kommen. Das nervt. Zwei Tipps sollten reichen.
 
 **Sag zu Claude — such dir was aus:**
 
-> „Zeig oben auf der Startseite groß, welcher Patient als Nächstes dran ist und um wie viel Uhr."
-
 > „Mach die Schrift und die Knöpfe größer, damit man sie mit Handschuhen gut treffen kann."
 
-> „Begrüße die Pflegekraft mit ihrem Namen aus den Einstellungen."
-
-> „Bau beim Patienten ein Feld ein: ‚Für nächstes Mal mitbringen'."
-
-> „Der PflegePilot soll nur noch die vier Knöpfe anbieten und keine freien Fragen mehr
-> beantworten." *(Er rät nämlich falsch — auf die Frage, wie viele Patienten noch offen sind,
-> hat er einfach irgendeine Patientenkarte aufgemacht. 🙈)*
+> „Begrüße die Pflegekraft mit ihrem Namen aus den Einstellungen, nicht nur mit
+> ‚Guten Morgen'."
 
 ---
 
