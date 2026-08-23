@@ -94,6 +94,44 @@ verschlüsselt auf der Platte statt im Klartext.
   (die genaue Prüfsumme hat sich durch die Historienbereinigung vom 22.08.2026 geändert,
   einfach im Log danach suchen: `git log --oneline --all --grep=PIN-Sperre`).
 
+## 🔄 Tourenaustausch ohne Server (seit 23.08.2026 LIVE)
+
+Die Chefin kann Patienten den beiden Fachkräften zuteilen, ohne dass Gesundheitsdaten über
+einen Server laufen — angefragt, weil Chefin und Tante sich die Tour bisher unsortiert per
+WhatsApp zuschicken und dann telefonisch klären mussten, wer wen übernimmt.
+
+**Bewusst kein Server, kein automatischer Sync.** Ein echter Server hätte sofort § 393 SGB V
+(C5-Typ-2-Testat), einen AVV mit dem Pflegedienst und § 203 StGB (Schweigepflicht-
+Verpflichtung für Papa als Betreiber) ausgelöst — siehe `MARKT.md`. Stattdessen: Ein Tipp zum
+Senden, ein Tipp zum Empfangen.
+
+- In der Tagesplanung (Modal „Tagesplanung") bekommt jeder Patient eine Zuteilung
+  („Nicht zugewiesen" / Name Fachkraft 1 / Name Fachkraft 2). Zwei Buttons bauen daraus ein
+  **verschlüsseltes Tourenpaket** (nur die Patienten dieser Fachkraft, inkl. Adresse, Zeit,
+  Material, Notiz) und öffnen die normale Teilen-Funktion — der Text geht über den Kanal, den
+  die drei ohnehin nutzen (WhatsApp, SMS, Mail).
+- Empfangen läuft über „Tour empfangen" in den Einstellungen: Text einfügen, Codewort
+  eingeben, übernehmen. Unbekannte Patientennamen werden automatisch neu angelegt. Bei
+  exakter Namensübereinstimmung wird der bestehende Patient automatisch erkannt (keine
+  Dublette). **Bei einem knappen, tippfehler-ähnlichen Treffer** (z. B. „Frau Musterr" vs.
+  „Frau Muster") fragt die App einmal kurz nach, statt automatisch zu entscheiden — das nutzt
+  dieselbe tippfehler-tolerante Suche (`fuzzyPatients`/`lev`), die auch die Suchleiste
+  verwendet. So bleiben wiederkehrende Patienten über mehrere Tourenpakete hinweg dieselbe
+  Person, ganz ohne geteilte IDs oder Server. Existiert für den Tag bereits eine Planung,
+  fragt die App vor dem Überschreiben nach (Regel 6).
+- **`share.js` ist eigener Papa-Bereich** (PBKDF2 + AES-256-GCM, komplett unabhängig von
+  `lock.js` und dessen PIN-Schlüssel) — bitte nichts daran ändern, ohne vorher zu fragen.
+  Henri kann an der Bedienung in `app.js` (Zuteilungs-Auswahl, Senden-/Empfangen-Buttons)
+  weiterbauen wie gewohnt.
+- **Das Team-Codewort ist kein Geräte-PIN.** Alle Beteiligten (Chefin + beide Fachkräfte)
+  müssen es sich einmal persönlich oder telefonisch mitteilen — **nie** über denselben Kanal
+  wie die Tour selbst, sonst schützt die Verschlüsselung nichts. Vor jedem Senden warnt die
+  App noch einmal genau davor.
+- Vollständig getestet (Verschlüsselung/Entschlüsselung, falsches Codewort, ungültiger Text,
+  Namensabgleich, automatisches Anlegen, Überschreib-Schutz) — Details siehe Commit-Historie
+  zu diesem Feature (`git log --oneline --all --grep=Tourenpaket` bzw. `--grep=Tourenaustausch`).
+- Cache-Version in `service-worker.js` wurde für dieses Feature bereits auf `v20` erhöht.
+
 ## ⚠️ Das Repository ist seit 22.08.2026 ÖFFENTLICH
 
 Grund: Nur so funktioniert das kostenlose automatische Hosting (GitHub Pages, siehe
