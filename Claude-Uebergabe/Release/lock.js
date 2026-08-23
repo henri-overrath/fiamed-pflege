@@ -160,14 +160,16 @@
       panel.innerHTML = `
         <div class="section-head"><div><h2>PIN ändern</h2><p>Schützt weiterhin dieselben Daten — der Wiederherstellungscode bleibt dabei gültig.</p></div></div>
         <form id="pinChangeForm" class="form-grid">
-          <label>Aktuelle PIN<input type="password" inputmode="numeric" pattern="[0-9]*" name="currentPin" autocomplete="current-password" required></label>
-          <label>Neue PIN<input type="password" inputmode="numeric" pattern="[0-9]*" name="newPin1" autocomplete="new-password" required></label>
-          <label>Neue PIN bestätigen<input type="password" inputmode="numeric" pattern="[0-9]*" name="newPin2" autocomplete="new-password" required></label>
+          <label>Aktuelle PIN<input type="password" inputmode="numeric" pattern="[0-9]*" id="pinChangeCurrent" name="currentPin" autocomplete="current-password" required></label>
+          <label>Neue PIN<input type="password" inputmode="numeric" pattern="[0-9]*" id="pinChangeNew1" name="newPin1" autocomplete="off" required></label>
+          <label>Neue PIN bestätigen<input type="password" inputmode="numeric" pattern="[0-9]*" id="pinChangeNew2" name="newPin2" autocomplete="off" required></label>
+          <button type="button" class="lock-link" id="pinChangeToggle">👁 PIN anzeigen</button>
           <p class="lock-error" id="pinChangeError" hidden></p>
           <button type="submit" class="btn">PIN ändern</button>
         </form>
       `;
       settingsEl.appendChild(panel);
+      wirePinVisibilityToggle('pinChangeToggle', ['pinChangeNew1', 'pinChangeNew2']);
       document.getElementById('pinChangeForm').onsubmit = handlePinChangeSubmit;
     };
     inject();
@@ -177,9 +179,9 @@
   async function handlePinChangeSubmit(e) {
     e.preventDefault();
     const form = e.target;
-    const currentPin = form.currentPin.value;
-    const newPin1 = form.newPin1.value;
-    const newPin2 = form.newPin2.value;
+    const currentPin = form.currentPin.value.trim();
+    const newPin1 = form.newPin1.value.trim();
+    const newPin2 = form.newPin2.value.trim();
     const err = document.getElementById('pinChangeError');
     err.hidden = true;
 
@@ -228,6 +230,26 @@
     overlay = null;
   }
 
+  // Blendet ein "👁 PIN anzeigen"-Umschalter ein, der beide Felder eines
+  // PIN-Bestätigungspaars synchron zwischen versteckt/sichtbar umschaltet.
+  // Grund: Mobile Browser (v. a. iOS Safari) schlagen bei zwei benachbarten
+  // password-Feldern manchmal unbemerkt ein eigenes, zufälliges Passwort für
+  // eines der beiden Felder vor — beide Felder zeigen dann nur Punkte, wirken
+  // identisch befüllt, sind es aber nicht. Sichtbar machen deckt das sofort auf.
+  function wirePinVisibilityToggle(toggleId, fieldIds) {
+    const toggle = document.getElementById(toggleId);
+    if (!toggle) return;
+    toggle.onclick = () => {
+      const showing = toggle.dataset.showing === '1';
+      fieldIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.type = showing ? 'password' : 'text';
+      });
+      toggle.dataset.showing = showing ? '0' : '1';
+      toggle.textContent = showing ? '👁 PIN anzeigen' : '🙈 PIN verbergen';
+    };
+  }
+
   // ---- Screen: PIN einrichten (erster Start) ----
   function showSetupScreen(existingPlaintextToMigrate) {
     render(`
@@ -236,17 +258,19 @@
         <h1>PIN einrichten</h1>
         <p>Schütze die App mit einer PIN (4–8 Ziffern). So bleiben die Daten geschützt, falls jemand das Gerät in die Hand nimmt.</p>
         <form id="setupForm">
-          <label>Neue PIN<input type="password" inputmode="numeric" pattern="[0-9]*" id="pin1" autocomplete="new-password" required></label>
-          <label>PIN bestätigen<input type="password" inputmode="numeric" pattern="[0-9]*" id="pin2" autocomplete="new-password" required></label>
+          <label>Neue PIN<input type="password" inputmode="numeric" pattern="[0-9]*" id="pin1" autocomplete="off" required></label>
+          <label>PIN bestätigen<input type="password" inputmode="numeric" pattern="[0-9]*" id="pin2" autocomplete="off" required></label>
+          <button type="button" class="lock-link" id="pin1Toggle">👁 PIN anzeigen</button>
           <p class="lock-error" id="setupError" hidden></p>
           <button type="submit" class="lock-btn">Weiter</button>
         </form>
       </div>
     `);
+    wirePinVisibilityToggle('pin1Toggle', ['pin1', 'pin2']);
     document.getElementById('setupForm').onsubmit = async (e) => {
       e.preventDefault();
-      const pin1 = document.getElementById('pin1').value;
-      const pin2 = document.getElementById('pin2').value;
+      const pin1 = document.getElementById('pin1').value.trim();
+      const pin2 = document.getElementById('pin2').value.trim();
       const err = document.getElementById('setupError');
       if (!/^\d{4,8}$/.test(pin1)) { err.textContent = 'Die PIN muss aus 4 bis 8 Ziffern bestehen.'; err.hidden = false; return; }
       if (pin1 !== pin2) { err.textContent = 'Die beiden PINs stimmen nicht überein.'; err.hidden = false; return; }
@@ -328,7 +352,7 @@
     `);
     document.getElementById('unlockForm').onsubmit = async (e) => {
       e.preventDefault();
-      const pin = document.getElementById('pinInput').value;
+      const pin = document.getElementById('pinInput').value.trim();
       const ok = await tryUnlockWithPin(meta, pin);
       if (!ok) {
         const err = document.getElementById('unlockError');
@@ -395,17 +419,19 @@
         <h1>Neue PIN festlegen</h1>
         <p>Der Code war richtig. Bitte jetzt eine neue PIN vergeben.</p>
         <form id="newPinForm">
-          <label>Neue PIN<input type="password" inputmode="numeric" pattern="[0-9]*" id="newPin1" required></label>
-          <label>PIN bestätigen<input type="password" inputmode="numeric" pattern="[0-9]*" id="newPin2" required></label>
+          <label>Neue PIN<input type="password" inputmode="numeric" pattern="[0-9]*" id="newPin1" autocomplete="off" required></label>
+          <label>PIN bestätigen<input type="password" inputmode="numeric" pattern="[0-9]*" id="newPin2" autocomplete="off" required></label>
+          <button type="button" class="lock-link" id="newPinToggle">👁 PIN anzeigen</button>
           <p class="lock-error" id="newPinError" hidden></p>
           <button type="submit" class="lock-btn">Speichern</button>
         </form>
       </div>
     `);
+    wirePinVisibilityToggle('newPinToggle', ['newPin1', 'newPin2']);
     document.getElementById('newPinForm').onsubmit = async (e) => {
       e.preventDefault();
-      const p1 = document.getElementById('newPin1').value;
-      const p2 = document.getElementById('newPin2').value;
+      const p1 = document.getElementById('newPin1').value.trim();
+      const p2 = document.getElementById('newPin2').value.trim();
       const err = document.getElementById('newPinError');
       if (!/^\d{4,8}$/.test(p1)) { err.textContent = 'Die PIN muss aus 4 bis 8 Ziffern bestehen.'; err.hidden = false; return; }
       if (p1 !== p2) { err.textContent = 'Die beiden PINs stimmen nicht überein.'; err.hidden = false; return; }
