@@ -1,4 +1,4 @@
-const CACHE = 'fiamed-pflege-pwa-v18';
+const CACHE = 'fiamed-pflege-pwa-v19';
 const APP_FILES = [
   './',
   './index.html',
@@ -29,7 +29,20 @@ const APP_FILES = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(APP_FILES)));
+  // Bewusst nicht cache.addAll(APP_FILES): das macht normale fetch()-Aufrufe,
+  // die den gewöhnlichen HTTP-Browser-Cache respektieren. GitHub Pages sendet
+  // "Cache-Control: max-age=600" — ohne {cache:'reload'} würde ein frisch
+  // installierter Service Worker damit teils noch bis zu 10 Minuten alte
+  // Dateien in seinen eigenen (neuen!) Cache übernehmen, obwohl der Server
+  // längst die neue Version hat. {cache:'reload'} zwingt jeden Request am
+  // HTTP-Cache vorbei direkt ans Netz.
+  event.waitUntil(
+    caches.open(CACHE).then(cache =>
+      Promise.all(APP_FILES.map(url =>
+        fetch(url, { cache: 'reload' }).then(response => cache.put(url, response))
+      ))
+    )
+  );
   self.skipWaiting();
 });
 
