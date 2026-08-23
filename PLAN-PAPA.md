@@ -55,7 +55,8 @@ ist jetzt öffentlich**, siehe Warnung oben in `CLAUDE.md`.
       Warnhinweis einfach entfernt (Quelle + Release), da ohnehin nicht mehr empfohlen.
       README verweist jetzt nur noch auf die Live-Adresse.
 - [ ] **Export nur verschlüsselt** — der JSON-Export ist derzeit eine Klartextdatei mit allen Patientendaten.
-- [ ] **Retention:** automatisches Löschen alter Besuchsdaten nach fester Frist (Datenminimierung).
+- [ ] **Retention (VORGEZOGEN, siehe unten „Wundfotos"):** automatisches Löschen alter
+      Besuchsdaten nach fester Frist (Datenminimierung).
 - [ ] **Teilen-Knopf entschärfen:** „Bericht an Chefin teilen" überträgt volle Klartextnamen
       per WhatsApp. Initialen statt voller Namen wären ein billiger, echter Gewinn.
       (Ist-Zustand ohne App ist nicht besser — die Chefin schickt die Liste selbst per WhatsApp.)
@@ -66,6 +67,26 @@ ist jetzt öffentlich**, siehe Warnung oben in `CLAUDE.md`.
       Service Worker registriert, Manifest lädt, `display: standalone`, PIN-Ersteinrichtung
       erscheint korrekt. **Offen:** Tante muss die App auf ihrem Gerät neu über diesen Link
       installieren (die alte `FiaMed-Pflege.html`-Installation ist weiterhin ungeschützt).
+
+## 🩹 Wundfotos — Rollenteilung (angefragt 23.08.2026)
+
+Die Tante möchte Wundfotos am Patienten speichern und gebündelt drucken/versenden können.
+DSGVO-Prüfung: grundsätzlich unproblematisch (reines Fotografieren/Speichern/Anzeigen ist
+laut `MARKT.md` nicht MDR-relevant), solange die Leitplanken in `CLAUDE.md` gelten
+(Komprimierung, Warnhinweis vor dem Teilen, kein automatisches Ausmessen/Bewerten).
+Kompletter Bauplan für Henri: `PLAN-HENRI.md`, Abschnitt „🩹 Wundfotos".
+
+**Henri baut:** Mehrfach-Fotos, Komprimierung, Galerie, Bündel-Druck, Bündel-Teilen +
+Warnhinweis, Foto-Tipp. Die Speicherung selbst braucht **keine neue Verschlüsselung** —
+Fotos landen im `state`-Objekt und werden dadurch automatisch von `lock.js` mitverschlüsselt.
+
+**Papas Anteil:**
+- [ ] **Retention jetzt wirklich bauen, bevor die Fotos in Umlauf sind** — besonders
+      sensible Bilddaten ohne jede Löschfrist sind ein wachsendes Risiko, das mit jedem
+      Foto größer wird. Nicht mehr nur „TODO", siehe Zeile oben in Stufe 1.
+- [ ] Nach Henris Umsetzung stichprobenartig gegenprüfen: Wird wirklich komprimiert
+      (Dateigröße nach dem Speichern kontrollieren)? Erscheint der Warnhinweis wirklich
+      vor JEDER Teilen-Aktion, auch bei nur einem ausgewählten Foto?
 
 ## Stufe 2 · Nur wenn die Chefin wirklich mitmachen will
 

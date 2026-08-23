@@ -108,6 +108,29 @@ Patientennamen als Startbelegung im Code (`const names=[...]` in `app.js`). Die 
 22.08.2026 entfernt UND die komplette Git-Historie wurde bereinigt (`git filter-repo`,
 danach Force-Push) — deshalb stimmen alte Commit-Hashes aus früheren Notizen nicht mehr.
 
+## 🩹 Wundfotos (geplant, siehe PLAN-HENRI.md)
+
+Die Tante möchte Wundfotos direkt am Patienten speichern und gebündelt drucken/versenden
+können — ein echter Wunsch aus ihrem Arbeitsalltag, kein Extra. DSGVO-technisch geprüft
+(22.08.2026): grundsätzlich unproblematisch, solange folgende Leitplanken gelten.
+
+- **Mehrere Fotos pro Patient**, nicht nur eins — für Verlaufsdokumentation. Jedes Foto
+  bekommt automatisch Datum/Uhrzeit, optional eine kurze Notiz.
+- **Vor dem Speichern verkleinern** (z. B. max. 1600px lange Kante) — sonst wird der
+  Browser-Speicher (Limit meist 5–10 MB) schnell knapp, besonders mit mehreren Patienten.
+- **Speicherung selbst ist bereits gelöst:** Fotos landen im normalen `state`-Objekt und
+  werden dadurch automatisch von `lock.js` mitverschlüsselt — dafür muss nichts Neues gebaut werden.
+- **Vor dem Teilen immer ein Warnhinweis**, bevor sich die native Teilen-Auswahl öffnet:
+  Wundfotos sind besonders sensible Gesundheitsdaten, private WhatsApp ist dafür beruflich
+  ungeeignet (Metadaten gehen an Meta/USA). Die App darf den Kanal nicht hart sperren
+  (technisch kaum möglich über die native Teilen-Funktion), aber muss vorher warnen.
+- **Kurzer Tipp beim Fotografieren:** nur die Wunde selbst, keine Gesichter oder
+  Namensschilder im Bild.
+- **Absolut tabu (siehe Regel 3):** automatisches Ausmessen, Bewerten, Klassifizieren oder
+  Verbandmittel-Vorschläge aus dem Foto — macht die App sofort zum Medizinprodukt.
+- Datenlöschung nach Frist (Retention) ist **Papas Aufgabe** (`PLAN-PAPA.md`), nicht Henris —
+  durch die zusätzlichen, besonders sensiblen Bilddaten jetzt vorgezogen.
+
 ## Harte Regeln (nicht verletzen)
 
 1. **Niemals echte Patientendaten in den Code schreiben.** Keine echten Namen, Adressen,
@@ -117,10 +140,12 @@ danach Force-Push) — deshalb stimmen alte Commit-Hashes aus früheren Notizen 
 2. **Alle Daten bleiben auf dem Gerät.** Keine Cloud, kein Server, keine Datenbank im Internet,
    keine Anmeldung, kein Hochladen von Daten — **außer Papa hat es ausdrücklich freigegeben**.
    Das ist kein Techniklimit, sondern Gesetz: Gesundheitsdaten dürfen nicht einfach weggeschickt werden.
-3. **Keine Wund-Vermessung oder Wund-Bewertung.** Fotos aufnehmen, speichern und anzeigen ist
-   erlaubt. Sobald die App eine Wunde **automatisch ausmisst, bewertet oder eine Behandlung
-   vorschlägt**, wird sie rechtlich zum Medizinprodukt (MDR Regel 11) — das ist dann ein
-   monatelanges Zulassungsverfahren. Diese Grenze nie überschreiten.
+3. **Keine Wund-Vermessung oder Wund-Bewertung.** Fotos aufnehmen, speichern, anzeigen,
+   bündeln, drucken und teilen ist erlaubt (siehe „🩹 Wundfotos" unten). Sobald die App eine
+   Wunde **automatisch ausmisst, bewertet, klassifiziert (z. B. Dekubitus-Kategorie) oder eine
+   Behandlung/Verbandmittel vorschlägt**, wird sie rechtlich zum Medizinprodukt (MDR Regel 11)
+   — das ist dann ein monatelanges Zulassungsverfahren. Diese Grenze nie überschreiten, auch
+   nicht als „hilfreiches Extra".
 4. **Keine Abrechnung.** Sobald die App Daten für die Abrechnung mit der Pflegekasse erzeugt,
    braucht sie eine amtliche Softwareprüfung (ITSG). Also: keine Leistungsnachweise,
    keine Unterschriften von Patienten, keine Abrechnungsdateien.
