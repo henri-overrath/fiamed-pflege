@@ -19,6 +19,7 @@ const APP_FILES = [
   './lock.css',
   './lock.js',
   './feierabend.css',
+  './material-schnell.css',
   './app.js',
   './pwa.js',
   './manifest.webmanifest',
