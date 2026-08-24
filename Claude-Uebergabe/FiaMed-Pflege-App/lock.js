@@ -103,6 +103,50 @@
     } catch { return false; }
   }
 
+  // ---------- IndexedDB-Spiegel der Lock-Metadaten ----------
+  // Ohne pinSalt/pinWrapped/recoverySalt/recoveryWrapped sind die verschlüsselten
+  // Daten UNWIDERRUFLICH verloren — das ist kein Bug, sondern der Sinn der
+  // Verschlüsselung (es gibt bewusst keinen Server-Zweitschlüssel). localStorage
+  // kann von Browsern aber ohne Vorwarnung geräumt werden (z. B. Safaris
+  // "Intelligent Tracking Prevention" nach längerer Nichtbenutzung der Seite).
+  // Eine zweite, unabhängige Kopie in IndexedDB (anderer Speicher, andere
+  // Räum-Regeln) senkt das Risiko eines Totalverlusts. Beide Speicher werden bei
+  // jedem Lesen/Schreiben synchron gehalten; fehlt eine Kopie, heilt die andere sie.
+  const IDB_NAME = 'fiamed-lock-backup';
+  const IDB_STORE = 'meta';
+  const IDB_KEY = 'current';
+  function openLockDb() {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) { reject(new Error('IndexedDB nicht verfügbar')); return; }
+      const req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = () => { req.result.createObjectStore(IDB_STORE); };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function idbGetMeta() {
+    try {
+      const db = await openLockDb();
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readonly');
+        const req = tx.objectStore(IDB_STORE).get(IDB_KEY);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+      });
+    } catch { return null; }
+  }
+  async function idbSetMeta(meta) {
+    try {
+      const db = await openLockDb();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put(meta, IDB_KEY);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    } catch (err) { console.error('IndexedDB-Sicherung der Lock-Metadaten fehlgeschlagen', err); }
+  }
+
   // ---------- localStorage-Weiche für app.js ----------
   // app.js liest/schreibt localStorage[KEY] ganz normal, synchron, wie eh und je.
   // Diese Weiche hält den Klartext nur im Speicher (nie persistiert) und
@@ -126,13 +170,28 @@
   }
 
   // ---------- Lock-Metadaten ----------
-  function loadLockMeta() {
+  // Liest bevorzugt aus localStorage; fehlt es dort, wird IndexedDB als
+  // Rückfallebene geprüft (und localStorage bei Erfolg gleich mitgeheilt).
+  // Erst wenn BEIDE Speicher leer sind, gilt "keine PIN eingerichtet".
+  async function loadLockMeta() {
     const raw = realGetItem(LOCK_KEY);
-    if (!raw) return null;
-    try { return JSON.parse(raw); } catch { return null; }
+    if (raw) {
+      try {
+        const meta = JSON.parse(raw);
+        idbSetMeta(meta); // im Hintergrund nachziehen, falls die IndexedDB-Kopie fehlt
+        return meta;
+      } catch { /* localStorage-Eintrag beschädigt: unten auf IndexedDB ausweichen */ }
+    }
+    const fromIdb = await idbGetMeta();
+    if (fromIdb) {
+      realSetItem(LOCK_KEY, JSON.stringify(fromIdb));
+      return fromIdb;
+    }
+    return null;
   }
-  function saveLockMeta(meta) {
+  async function saveLockMeta(meta) {
     realSetItem(LOCK_KEY, JSON.stringify(meta));
+    await idbSetMeta(meta);
   }
 
   // ---------- App laden (erst NACH Entsperrung) ----------
@@ -188,7 +247,7 @@
     if (!/^\d{4,8}$/.test(newPin1)) { err.textContent = 'Die neue PIN muss aus 4 bis 8 Ziffern bestehen.'; err.hidden = false; return; }
     if (newPin1 !== newPin2) { err.textContent = 'Die beiden neuen PINs stimmen nicht überein.'; err.hidden = false; return; }
 
-    const meta = loadLockMeta();
+    const meta = await loadLockMeta();
     if (!meta) { err.textContent = 'Keine PIN eingerichtet.'; err.hidden = false; return; }
 
     let masterKeyBytes;
@@ -207,7 +266,7 @@
     meta.pinWrapped = await wrapMasterKey(newWrapKey, masterKeyBytes);
     meta.failedAttempts = 0;
     meta.lockedUntil = 0;
-    saveLockMeta(meta);
+    await saveLockMeta(meta);
 
     form.reset();
     err.hidden = false;
@@ -299,7 +358,7 @@
       recoverySalt: bytesToBase64(recoverySalt), recoveryIterations: RECOVERY_ITERATIONS, recoveryWrapped,
       failedAttempts: 0, lockedUntil: 0
     };
-    saveLockMeta(meta);
+    await saveLockMeta(meta);
 
     masterKey = masterKeyObj;
     cachedPlaintext = existingPlaintextToMigrate || null;
@@ -365,6 +424,11 @@
   }
 
   async function tryUnlockWithPin(meta, pin) {
+    // Frisch laden statt dem beim Rendern übergebenen Objekt zu vertrauen: War die
+    // App in einem anderen Tab/Fenster zwischenzeitlich offen (z. B. PIN dort
+    // geändert), verhindert das, dass hier mit veralteten Metadaten verglichen
+    // oder später ein veralteter Stand zurückgeschrieben wird.
+    meta = (await loadLockMeta()) || meta;
     try {
       const wrapKey = await deriveWrappingKey(pin, meta.pinSalt, meta.pinIterations);
       const masterKeyBytes = await unwrapMasterKey(wrapKey, meta.pinWrapped);
@@ -377,7 +441,7 @@
         const extra = meta.failedAttempts - MAX_FAILS_BEFORE_THROTTLE;
         meta.lockedUntil = Date.now() + Math.min(30 * Math.pow(2, extra), 300) * 1000;
       }
-      saveLockMeta(meta);
+      await saveLockMeta(meta);
       return false;
     }
   }
@@ -399,6 +463,7 @@
     document.getElementById('recoverForm').onsubmit = async (e) => {
       e.preventDefault();
       const code = normalizeRecoveryCode(document.getElementById('recoveryInput').value);
+      meta = (await loadLockMeta()) || meta; // s. Kommentar in tryUnlockWithPin
       try {
         const wrapKey = await deriveWrappingKey(code, meta.recoverySalt, meta.recoveryIterations);
         const masterKeyBytes = await unwrapMasterKey(wrapKey, meta.recoveryWrapped);
@@ -443,7 +508,7 @@
       meta.pinWrapped = await wrapMasterKey(pinWrapKey, masterKeyBytes);
       meta.failedAttempts = 0;
       meta.lockedUntil = 0;
-      saveLockMeta(meta);
+      await saveLockMeta(meta);
       await finishUnlock(keyObj, meta, false);
     };
   }
@@ -452,7 +517,7 @@
     if (resetThrottle) {
       meta.failedAttempts = 0;
       meta.lockedUntil = 0;
-      saveLockMeta(meta);
+      await saveLockMeta(meta);
     }
     masterKey = keyObj;
     const rawEnvelope = realGetItem(KEY);
@@ -461,16 +526,44 @@
     bootApp();
   }
 
+  // ---- Screen: Metadaten fehlen, verschlüsselte Daten sind aber noch da ----
+  // Kann passieren, wenn der Browser localStorage UND die IndexedDB-Sicherung
+  // geräumt hat (z. B. Safaris "Intelligent Tracking Prevention" nach langer
+  // Nichtbenutzung), während die verschlüsselten Daten selbst erhalten blieben.
+  // Ohne PIN-Salt und eingewickelten Schlüssel sind diese Daten unwiderruflich
+  // unlesbar — das lässt sich nicht reparieren, aber es lässt sich EHRLICH
+  // anzeigen, statt stillschweigend eine neue, leere PIN einzurichten und die
+  // alten Daten dabei unbemerkt für immer zu verwaisen.
+  function showOrphanedDataScreen() {
+    render(`
+      <div class="lock-card">
+        <div class="lock-badge">⚠️</div>
+        <h1>PIN-Information nicht gefunden</h1>
+        <p>Auf diesem Gerät liegen bereits verschlüsselte Daten, aber die dazugehörige PIN-Information fehlt — vermutlich hat der Browser sie gelöscht, z. B. nach längerer Nichtbenutzung.</p>
+        <p><b>Ohne die bisherige PIN oder den Wiederherstellungscode lassen sich diese Daten nicht mehr entschlüsseln — das ist technisch nicht möglich, nicht nur schwierig.</b></p>
+        <p>Falls die PIN oder der Code noch griffbereit sind: bitte jetzt nicht fortfahren, sondern zuerst Hilfe holen (Papa). Ein Neueinrichten hier macht die alten, jetzt unlesbaren Daten dauerhaft unerreichbar.</p>
+        <button class="lock-btn" id="acknowledgeOrphan">Verstanden — neu einrichten</button>
+      </div>
+    `);
+    document.getElementById('acknowledgeOrphan').onclick = () => showSetupScreen(null);
+  }
+
   // ---------- Start ----------
-  function start() {
-    const meta = loadLockMeta();
+  async function start() {
+    const meta = await loadLockMeta();
     if (meta) {
       showUnlockScreen(meta);
       return;
     }
-    // Noch keine PIN eingerichtet: prüfen, ob schon (unverschlüsselte) Altdaten
-    // vorhanden sind, damit sie bei der Einrichtung mit übernommen werden.
     const raw = realGetItem(KEY) || realGetItem(LEGACY_KEY);
+    if (raw && isEncryptedEnvelope(raw)) {
+      // Keine Metadaten, aber schon verschlüsselte Daten vorhanden: NICHT als
+      // "noch nie eingerichtet" behandeln, siehe showOrphanedDataScreen().
+      showOrphanedDataScreen();
+      return;
+    }
+    // Wirklich noch keine PIN eingerichtet: prüfen, ob schon (unverschlüsselte)
+    // Altdaten vorhanden sind, damit sie bei der Einrichtung mit übernommen werden.
     const existingPlaintext = (raw && !isEncryptedEnvelope(raw)) ? raw : null;
     showSetupScreen(existingPlaintext);
   }
