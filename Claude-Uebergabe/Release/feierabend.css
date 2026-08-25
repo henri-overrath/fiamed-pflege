@@ -53,3 +53,10 @@
   .confetti-piece { animation: none; display: none; }
   #feierabendOverlay h2 { animation: none; transform: none; opacity: 1; }
 }
+
+/* Abgeschlossener Arbeitstag: Knopf soll erkennbar "fertig", nicht mehr klickbar wirken */
+.day-close:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  filter: grayscale(.3);
+}
