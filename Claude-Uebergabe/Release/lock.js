@@ -21,7 +21,8 @@
 
   let masterKey = null;
   let cachedPlaintext = null;
-  let writeQueue = Promise.resolve();
+  let pendingPlaintext = null;   // noch nicht verschlüsselt geschriebener Stand
+  let writeInFlight = false;     // läuft gerade ein Schreibvorgang?
 
   const textEncoder = new TextEncoder();
   const textDecoder = new TextDecoder();
@@ -150,7 +151,47 @@
   // ---------- localStorage-Weiche für app.js ----------
   // app.js liest/schreibt localStorage[KEY] ganz normal, synchron, wie eh und je.
   // Diese Weiche hält den Klartext nur im Speicher (nie persistiert) und
-  // schreibt asynchron eine verschlüsselte Fassung in die echte localStorage.
+  // schreibt eine verschlüsselte Fassung in die echte localStorage.
+  //
+  // Das Verschlüsseln MUSS asynchron bleiben: WebCrypto bietet keine synchrone
+  // Variante, und eine selbstgebaute wäre schlechter als das Problem. Es bleibt
+  // also ein kurzer Moment, in dem eine Änderung nur im Speicher steht. Zwei
+  // Maßnahmen halten dieses Fenster so klein wie möglich (Bug vom 25.08.2026:
+  // Tour wirkte zurückgesetzt, wenn die App direkt nach einer Änderung
+  // weggewischt wurde):
+  //
+  // 1. Schreibvorgänge werden ZUSAMMENGEFASST statt aufgereiht. Vorher hängte
+  //    jedes setItem einen weiteren Verschlüsselungslauf an eine Kette, obwohl
+  //    nur der jeweils letzte Stand zählt — bei mehreren schnellen Änderungen
+  //    warteten alle aufeinander und das Fenster wuchs. Jetzt wird immer nur der
+  //    neueste Stand geschrieben, ältere Zwischenstände werden übersprungen.
+  // 2. Beim Wechsel in den Hintergrund (visibilitychange/pagehide) wird sofort
+  //    ausgeschrieben. Beim Wegwischen geht die App immer erst in den
+  //    Hintergrund, bevor sie beendet wird — dieser Moment reicht in der Praxis.
+  function flushPendingWrite() {
+    if (writeInFlight || pendingPlaintext === null) return;
+    writeInFlight = true;
+    (async () => {
+      try {
+        while (pendingPlaintext !== null) {
+          const value = pendingPlaintext;
+          const envelope = await encryptState(masterKey, value);
+          realSetItem(KEY, envelope);
+          // Erst NACH dem tatsächlichen Schreiben als erledigt markieren — und nur,
+          // wenn inzwischen kein neuerer Stand eingetroffen ist. Wichtig für den
+          // Fall, dass iOS die Seite mitten im Vorgang einfriert: dann bleibt der
+          // Stand als offen vermerkt und wird beim Wiederaufwachen (pageshow)
+          // nachgeholt, statt lautlos verloren zu gehen.
+          if (pendingPlaintext === value) pendingPlaintext = null;
+        }
+      } catch (err) {
+        console.error('Verschlüsseltes Speichern fehlgeschlagen', err);
+      } finally {
+        writeInFlight = false;
+      }
+    })();
+  }
+
   function installShim() {
     localStorage.getItem = function (k) {
       if (k === KEY) return cachedPlaintext;
@@ -159,14 +200,21 @@
     localStorage.setItem = function (k, v) {
       if (k === KEY) {
         cachedPlaintext = v;
-        writeQueue = writeQueue
-          .then(() => encryptState(masterKey, v))
-          .then(envelope => realSetItem(KEY, envelope))
-          .catch(err => console.error('Verschlüsseltes Speichern fehlgeschlagen', err));
+        pendingPlaintext = v;
+        flushPendingWrite();
         return;
       }
       return realSetItem(k, v);
     };
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flushPendingWrite();
+    });
+    window.addEventListener('pagehide', flushPendingWrite);
+    // Rückkehr aus dem Hintergrund: nachholen, was beim Einfrieren liegengeblieben ist.
+    window.addEventListener('pageshow', flushPendingWrite);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') flushPendingWrite();
+    });
   }
 
   // ---------- Lock-Metadaten ----------

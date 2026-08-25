@@ -61,16 +61,29 @@ ist jetzt öffentlich**, siehe Warnung oben in `CLAUDE.md`.
       per WhatsApp. Initialen statt voller Namen wären ein billiger, echter Gewinn.
       (Ist-Zustand ohne App ist nicht besser — die Chefin schickt die Liste selbst per WhatsApp.)
 - [ ] **Datenschutzhinweis in der App:** welche Daten wo liegen, wer sie sieht, wie man sie löscht.
-- [ ] **Bug gemeldet 25.08.2026 (Tante): Tour wirkt zurückgesetzt, wenn die App direkt nach
-      einer Änderung geschlossen wird (Swipe im App-Umschalter).** Vermutete Ursache in
-      `lock.js`: `localStorage.setItem` cached den Klartext sofort, verschlüsselt aber
-      asynchron über eine `writeQueue` (`encryptState` → `realSetItem`) — wird der
-      Prozess (App/Tab) beendet, bevor dieser Promise-Chain durchgelaufen ist, landet die
-      neue Änderung nie im echten `localStorage`, und beim nächsten Öffnen erscheint der
-      vorherige (ältere) Stand. Noch nicht selbst untersucht, ob/wie sich das zuverlässig
-      lösen lässt (`pagehide`/`visibilitychange` kommen bei kompletter Prozessbeendigung auf
-      iOS vermutlich zu spät oder gar nicht) — Henris Claude hat nur den Verdacht lokalisiert,
-      nicht behoben, da Kryptografie/`lock.js` Papas Bereich ist.
+- [x] ~~**Bug gemeldet 25.08.2026 (Tante): Tour wirkt zurückgesetzt, wenn die App direkt nach
+      einer Änderung geschlossen wird (Swipe im App-Umschalter).**~~ **Behoben 25.08.2026**
+      (Henris Fund war goldrichtig, PR #25). Ursache exakt wie von ihm vermutet: Die
+      `writeQueue` in `lock.js` verschlüsselte asynchron, `setItem` kehrte sofort zurück.
+      **Ergänzend gemessen:** Die Verschlüsselung selbst dauert nur ~0,05 ms (7 KB) bzw.
+      ~1,9 ms (2 MB mit Fotos) — Rechenzeit war also nie das Problem. Entscheidend ist, dass
+      iOS die Seite beim Wechsel in den Hintergrund **einfriert** und offene Promises dann
+      nicht mehr auflöst. Zusätzlicher Verstärker: die alte Queue reihte jeden Zwischenstand
+      einzeln auf, obwohl nur der letzte zählt.
+      **Fix:** Schreibvorgänge werden zusammengefasst (nur der neueste Stand wird
+      geschrieben); der Stand gilt erst nach dem tatsächlichen Schreiben als erledigt, sodass
+      ein beim Einfrieren abgebrochener Vorgang bei Rückkehr (`pageshow`/`visibilitychange`)
+      nachgeholt wird statt lautlos verloren zu gehen.
+      **Restrisiko, bewusst offen:** WebCrypto bietet keine synchrone Verschlüsselung — ein
+      hartes Beenden ohne vorherigen Hintergrundwechsel (Absturz, iOS killt wegen
+      Speichermangel) kann die letzte Änderung weiterhin kosten. Eine selbstgebaute
+      synchrone Krypto wäre schlechter als das Problem.
+- [ ] **Verstärker noch offen (Henris Bereich, `app.js`):** `save()` legt bei *jedem* Aufruf
+      einen Vollschnappschuss an und hält 12 davon in `state.backups` — verschlüsselt wird
+      also jedes Mal ein Vielfaches der Nutzdaten. Heute unkritisch (~7 KB), **mit den
+      Wundfotos aber nicht mehr**: Bilder lägen dann im Zustand *und* in jedem der zwölf
+      Schnappschüsse. Vor dem Foto-Feature entschärfen (weniger Schnappschüsse oder Fotos
+      davon ausnehmen).
 - [x] ~~**Hosting:** `index.html` (mit PIN-Schutz) über eine echte `https://`-Adresse.~~
       **Erledigt 22.08.2026** — https://henri-overrath.github.io/fiamed-pflege/, GitHub
       Pages, automatisch via `.github/workflows/deploy-pages.yml` bei jedem Push. Getestet:
