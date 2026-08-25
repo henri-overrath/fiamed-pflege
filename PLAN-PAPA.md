@@ -61,6 +61,16 @@ ist jetzt öffentlich**, siehe Warnung oben in `CLAUDE.md`.
       per WhatsApp. Initialen statt voller Namen wären ein billiger, echter Gewinn.
       (Ist-Zustand ohne App ist nicht besser — die Chefin schickt die Liste selbst per WhatsApp.)
 - [ ] **Datenschutzhinweis in der App:** welche Daten wo liegen, wer sie sieht, wie man sie löscht.
+- [ ] **Bug gemeldet 25.08.2026 (Tante): Tour wirkt zurückgesetzt, wenn die App direkt nach
+      einer Änderung geschlossen wird (Swipe im App-Umschalter).** Vermutete Ursache in
+      `lock.js`: `localStorage.setItem` cached den Klartext sofort, verschlüsselt aber
+      asynchron über eine `writeQueue` (`encryptState` → `realSetItem`) — wird der
+      Prozess (App/Tab) beendet, bevor dieser Promise-Chain durchgelaufen ist, landet die
+      neue Änderung nie im echten `localStorage`, und beim nächsten Öffnen erscheint der
+      vorherige (ältere) Stand. Noch nicht selbst untersucht, ob/wie sich das zuverlässig
+      lösen lässt (`pagehide`/`visibilitychange` kommen bei kompletter Prozessbeendigung auf
+      iOS vermutlich zu spät oder gar nicht) — Henris Claude hat nur den Verdacht lokalisiert,
+      nicht behoben, da Kryptografie/`lock.js` Papas Bereich ist.
 - [x] ~~**Hosting:** `index.html` (mit PIN-Schutz) über eine echte `https://`-Adresse.~~
       **Erledigt 22.08.2026** — https://henri-overrath.github.io/fiamed-pflege/, GitHub
       Pages, automatisch via `.github/workflows/deploy-pages.yml` bei jedem Push. Getestet:
