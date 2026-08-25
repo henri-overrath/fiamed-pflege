@@ -167,31 +167,51 @@
     else if(action==='deleteMaterial'&&material){state.materials=state.materials.filter(m=>m.id!==id);save('Material über PflegePilot gelöscht');renderAll();pilotMessage(material.name+' wurde gelöscht.');}
     else pilotMessage('Diese Änderung konnte nicht mehr ausgeführt werden. Bitte prüfen Sie die Daten noch einmal.');
   }
+  /* Wortliste für die Tippfehler-Erkennung des PflegePiloten: jedes Wort einer Frage wird,
+     wenn es keinem dieser bekannten Begriffe exakt entspricht, per Levenshtein-Distanz (lev(),
+     dieselbe Funktion, die auch die Patientensuche tippfehler-tolerant macht) auf den
+     ähnlichsten Begriff korrigiert - aber nur bei kleinen Abweichungen, damit z. B. Patienten-
+     oder Materialnamen nicht versehentlich verändert werden. */
+  const PILOT_KEYWORDS=['hallo','hi','moin','morgen','tag','abend','wie','geht','es','dir','danke','wer','bist','kannst','spaet','uhr','uhrzeit','datum','welcher','heute','fehlen','fehlt','offene','offen','noch','patient','patienten','material','nachbestellen','leer','brauche','liste','kilometer','diesen','monat','arbeitszeit','arbeite','stunden','bericht','tagesbericht','statistik','kalender','einstellung','einstellungen','zeige','oeffne','offne','tour','heutige','starte','start','beende','beendet','markiere','als','besucht','besuch','loesche','losche','entferne','navigation','witz','erzaehl','wetter','gebaut','programmiert','fertig','bin','ich','fuer'];
+  function pilotWordFix(w){const nw=normal(w);if(nw.length<3||PILOT_KEYWORDS.includes(nw))return nw;let best=null,bestD=Infinity;for(const k of PILOT_KEYWORDS){const d=lev(nw,k);if(d<bestD){bestD=d;best=k}}return best&&bestD<=Math.max(1,Math.floor(nw.length*.25))?best:nw}
+  function pilotNormal(q){return String(q).split(/\s+/).map(pilotWordFix).join('')}
+
   function ask(q){
-    const n=normal(q),p=patientFromText(q),openPatients=active().filter(x=>!x.archived&&x.status!=='done'),allToday=active().filter(x=>!x.archived);
+    const n=pilotNormal(q),p=patientFromText(q),openPatients=active().filter(x=>!x.archived&&x.status!=='done'),allToday=active().filter(x=>!x.archived),now=new Date();
     pilotMessage(q,'user');
     let answer='',confirmation='';
-    const openView=(id,label)=>{show(id);answer='Ich habe '+label+' geöffnet.'};
-    if(/^(hallo|hi|moin|guten\s*morgen|guten\s*tag|guten\s*abend)\b/i.test(q.trim())) answer='Hallo! Ich bin PflegePilot. Ich kann Ihre heutigen Aufgaben, Patienten, Materialien, Kilometer und Berichte direkt aus dieser App für Sie anzeigen.';
-    else if(/wiegehtes|wiegehts/.test(n)) answer='Mir geht’s gut, danke der Nachfrage! 😊 Ich bin hier, um bei Ihrer Tour, Patienten, Material oder dem Tagesbericht zu helfen – was brauchen Sie?';
-    else if(/was.*(heute|fehlt)|patientenfehlen|offene.*patient|nochoffen/.test(n)) answer=allToday.length?'Heute sind '+allToday.length+' Patienten geplant. Noch offen: '+(openPatients.map(x=>x.name).join(', ')||'keine – alle Besuche sind erledigt')+'.':'Für heute ist noch keine Tour geplant.';
-    else if(/material.*(nachbestell|leer|brauche|heute|liste)|nachbestell/.test(n)){const groups=typeof reportMaterialGroups==='function'?reportMaterialGroups():[];const planned=[...new Set(allToday.flatMap(x=>x.materials||[]))];answer=groups.length?'Zum Nachbestellen: '+groups.map(x=>x.quantity+' × '+x.name+' für '+x.patient).join(', ')+'.':planned.length?'Für die heutige Tour vorgesehen: '+planned.join(', ')+'.':'Heute ist noch kein Material erfasst.';}
-    else if(/kilometer/.test(n)) answer='Heute sind '+Number(state.kilometers||0).toFixed(1)+' Kilometer erfasst.';
-    else if(/arbeitszeit|arbeite|stunden/.test(n)) answer='Ihre Arbeitszeit heute beträgt '+fmt(secs()-pauseSeconds())+'.';
-    else if(/bericht|tagesbericht/.test(n)) openView('reports','den Tagesbericht');
+    const openView=(id,label)=>{show(id);answer='📂 '+label+' ist offen.'};
+    if(/1\s*\+\s*1/.test(q)) answer='2️⃣ Aber ich bin fürs Pflege-Rechnen da, nicht für Mathe-Hausaufgaben 😄';
+    else if(/^(hallo|hi|moin|guten\s*morgen|guten\s*tag|guten\s*abend)\b/i.test(q.trim())) answer='Hallo! 👋 Ich bin PflegePilot – frag mich zu Tour, Patienten, Material, Kilometern oder Berichten.';
+    else if(/wiegehtes|wiegehts/.test(n)) answer='Mir geht’s gut, danke! 😊 Was brauchst du?';
+    else if(/werbistdu|wasbistdu/.test(n)) answer='Ich bin PflegePilot 🚑 – dein Helfer für Tour, Patienten, Material & Berichte.';
+    else if(/waskannstdu/.test(n)) answer='Ich zeige dir z. B. offene Patienten, Kilometer, Arbeitszeit oder Material zum Nachbestellen – und öffne Ansichten für dich. 🧭';
+    else if(/gebaut|programmiert/.test(n)) answer='Henri hat mich gebaut – mit ein bisschen Hilfe von Claude 👨‍💻';
+    else if(/danke/.test(n)) answer='Gerne! 🙌 Sag Bescheid, wenn noch was ist.';
+    else if(/wiespaet|uhrzeit/.test(n)) answer='🕐 Es ist '+now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr.';
+    else if(/welchertag|welchesdatum/.test(n)) answer='📅 Heute ist '+now.toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long'})+'.';
+    else if(/wetter/.test(n)) answer='Kein Internetzugang hier drin 🌦️ – fürs Wetter musst du kurz aus dem Fenster schauen 😉';
+    else if(/witz|erzaehl/.test(n)) answer=['Warum können Geister so schlecht lügen? Weil man durch sie hindurchsieht! 👻😄','Was macht ein Keks unterm Baum? Er krümelt! 🍪😄','Warum weinen Kartoffeln nicht? Weil sie Chips vom Leben sind! 🥔😄'][Math.floor(Math.random()*3)];
+    else if(/binichfertig|fertigheute|tourfertig/.test(n)) answer=allToday.length?(openPatients.length?'Noch '+openPatients.length+' offen. 💪':'Ja, alle erledigt! 🎉'):'Heute ist noch keine Tour geplant.';
+    else if(/kilometer.*monat|monat.*kilometer/.test(n)){const mk=Object.entries(state.kilometerLog||{}).filter(([d])=>new Date(d).getMonth()===now.getMonth()&&new Date(d).getFullYear()===now.getFullYear()).reduce((s,[,x])=>s+Number(x),0);answer='🚗 Diesen Monat: '+mk.toFixed(1)+' km.';}
+    else if(/was.*(heute|fehlt)|patientenfehlen|offene.*patient|nochoffen/.test(n)) answer=allToday.length?'📋 Heute: '+allToday.length+' Patienten. Noch offen: '+(openPatients.map(x=>x.name).join(', ')||'keine – alles erledigt! 🎉')+'.':'Für heute ist noch keine Tour geplant.';
+    else if(/material.*(nachbestell|leer|brauche|heute|liste)|nachbestell/.test(n)){const groups=typeof reportMaterialGroups==='function'?reportMaterialGroups():[];const planned=[...new Set(allToday.flatMap(x=>x.materials||[]))];answer=groups.length?'📦 Nachbestellen: '+groups.map(x=>x.quantity+' × '+x.name+' für '+x.patient).join(', ')+'.':planned.length?'📦 Vorgesehen: '+planned.join(', ')+'.':'Heute ist noch kein Material erfasst.';}
+    else if(/kilometer/.test(n)) answer='🚗 Heute: '+Number(state.kilometers||0).toFixed(1)+' km.';
+    else if(/arbeitszeit|arbeite|stunden/.test(n)) answer='🕒 Arbeitszeit heute: '+fmt(secs()-pauseSeconds())+'.';
+    else if(/bericht|tagesbericht/.test(n)) openView('reports','der Tagesbericht');
     else if(/statistik/.test(n)) openView('statistics','die Statistik');
-    else if(/kalender/.test(n)) openView('calendar','den Kalender');
+    else if(/kalender/.test(n)) openView('calendar','der Kalender');
     else if(/einstellung/.test(n)) openView('settings','die Einstellungen');
     else if(/(zeige|offne|oeffne).*material/.test(n)) openView('materials','die Materialverwaltung');
-    else if(/(zeige|offne|oeffne).*(tour|heutig)/.test(n)) openView('dayplan','Ihre heutige Tour');
-    else if(/starte.*tour|tour.*start/.test(n)){if(state.tourStartedAt)answer='Ihre Tour läuft bereits seit '+new Date(state.tourStartedAt).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+'.';else{answer='Soll ich die Tour-Checkliste öffnen? Die Tour wird erst nach Ihrer Bestätigung gestartet.';confirmation=pilotConfirm('Tour vorbereiten','startTour')}}
-    else if(/beende.*tour|tour.*beend/.test(n)){if(!state.tourStartedAt)answer='Aktuell läuft keine Tour.';else{answer='Soll ich die Tour jetzt beenden und die Zusammenfassung öffnen?';confirmation=pilotConfirm('Tour beenden','endTour')}}
-    else if(/(markiere|als).*besucht|besuch.*beend/.test(n)){if(!p)answer='Welchen Patienten soll ich als besucht markieren?';else if(p.status==='done')answer=p.name+' ist bereits als besucht markiert.';else{answer='Soll ich '+p.name+' als besucht markieren?';confirmation=pilotConfirm('Besuch speichern','completeVisit',p.id)}}
-    else if(/losch|loesch|entfern/.test(n)&&p){answer='Soll ich '+p.name+' wirklich löschen? Diese Änderung kann nicht automatisch rückgängig gemacht werden.';confirmation=pilotConfirm('Patient löschen','deletePatient',p.id)}
-    else if(/losch|loesch|entfern/.test(n)){const m=state.materials.find(x=>n.includes(normal(x.name)));if(m){answer='Soll ich das Material '+m.name+' wirklich löschen?';confirmation=pilotConfirm('Material löschen','deleteMaterial',m.id)}else answer='Welchen Patienten oder welches Material möchten Sie löschen?';}
-    else if(/navigation/.test(n)){if(p){navigate(p);answer='Ich öffne die Navigation für '+p.name+'.';}else answer='Für welchen Patienten soll ich die Navigation öffnen?';}
-    else if(p){openPatient(p);answer='Ich habe die Details von '+p.name+' geöffnet.';}
-    else answer='Das habe ich noch nicht sicher verstanden. Sie können zum Beispiel fragen: „Welche Patienten fehlen?“, „Öffne Frau Muster“, „Wie viele Kilometer?“ oder „Zeige Material zum Nachbestellen“. Änderungen bestätige ich immer vorher.';
+    else if(/(zeige|offne|oeffne).*(tour|heutig)/.test(n)) openView('dayplan','deine heutige Tour');
+    else if(/starte.*tour|tour.*start/.test(n)){if(state.tourStartedAt)answer='⏱️ Deine Tour läuft schon seit '+new Date(state.tourStartedAt).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+'.';else{answer='Soll ich die Tour-Checkliste öffnen? Die Tour startet erst nach deiner Bestätigung.';confirmation=pilotConfirm('Tour vorbereiten','startTour')}}
+    else if(/beende.*tour|tour.*beend/.test(n)){if(!state.tourStartedAt)answer='Aktuell läuft keine Tour.';else{answer='Tour jetzt beenden und Zusammenfassung öffnen?';confirmation=pilotConfirm('Tour beenden','endTour')}}
+    else if(/(markiere|als).*besucht|besuch.*beend/.test(n)){if(!p)answer='Welchen Patienten soll ich als besucht markieren?';else if(p.status==='done')answer=p.name+' ist schon als besucht markiert. ✅';else{answer='Soll ich '+p.name+' als besucht markieren?';confirmation=pilotConfirm('Besuch speichern','completeVisit',p.id)}}
+    else if(/losch|loesch|entfern/.test(n)&&p){answer='Soll ich '+p.name+' wirklich löschen? Das lässt sich nicht automatisch rückgängig machen.';confirmation=pilotConfirm('Patient löschen','deletePatient',p.id)}
+    else if(/losch|loesch|entfern/.test(n)){const m=state.materials.find(x=>n.includes(normal(x.name)));if(m){answer='Soll ich das Material '+m.name+' wirklich löschen?';confirmation=pilotConfirm('Material löschen','deleteMaterial',m.id)}else answer='Welchen Patienten oder welches Material möchtest du löschen?';}
+    else if(/navigation/.test(n)){if(p){navigate(p);answer='🧭 Navigation für '+p.name+' geöffnet.';}else answer='Für welchen Patienten soll ich die Navigation öffnen?';}
+    else if(p){openPatient(p);answer='Ich hab die Details von '+p.name+' geöffnet. 📇';}
+    else answer='Das hab ich noch nicht verstanden 🤔 Frag mich z. B.: „Welche Patienten fehlen?“, „Wie viele Kilometer?“, „Bin ich fertig?“ oder „Erzähl einen Witz“. Änderungen bestätige ich immer vorher.';
     pilotMessage(answer,'assistant',confirmation);
   }
 
