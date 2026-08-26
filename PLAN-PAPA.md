@@ -84,6 +84,23 @@ ist jetzt öffentlich**, siehe Warnung oben in `CLAUDE.md`.
       Wundfotos aber nicht mehr**: Bilder lägen dann im Zustand *und* in jedem der zwölf
       Schnappschüsse. Vor dem Foto-Feature entschärfen (weniger Schnappschüsse oder Fotos
       davon ausnehmen).
+- [ ] **Bug gemeldet 26.08.2026 (Henri): „Falsche PIN" auf seinem Mac, obwohl der Code
+      stimmt — nur nach komplettem Schließen von Safari, nur auf seinem Gerät, nicht bei der
+      Tante.** Noch nicht behoben, nur untersucht (Henris Claude, ohne `lock.js` selbst
+      anzufassen). Verdacht: Das Entsperren-Feld (`#pinInput`, Zeile ~453) und das Feld
+      „Aktuelle PIN" beim PIN-Ändern haben `autocomplete="current-password"` — das lädt
+      Safaris Passwort-Autofill/Schlüsselbund für ein Feld ein, das gar kein Website-Login
+      ist, sondern eine reine Ziffern-PIN. Vermutung: Ein beim Testen mal geänderter Code
+      blieb im Schlüsselbund hängen und wird beim Laden automatisch (unsichtbar, da nur
+      Punkte angezeigt werden) über die frische Eingabe gelegt — daher „falsch", obwohl
+      korrekt getippt. Bei der Tante existiert dieser alte Schlüsselbund-Eintrag nicht, daher
+      dort kein Problem. **Nicht abschließend verifiziert** (kein Zugriff auf Henris echten
+      Safari-Schlüsselbund) — passt aber zu einem bekannten Safari-Verhalten bei
+      `type="password"`-Feldern. Sofort-Workaround ohne Code-Änderung, das Henri schon
+      ausprobieren kann: Safari → Einstellungen → Passwörter → Eintrag für
+      `henri-overrath.github.io` löschen. Vermutete richtige Reparatur: an den betroffenen
+      Feldern `autocomplete="off"` statt `"current-password"` setzen, damit Safari das Feld
+      gar nicht erst als Login-Passwort einordnet.
 - [x] ~~**Hosting:** `index.html` (mit PIN-Schutz) über eine echte `https://`-Adresse.~~
       **Erledigt 22.08.2026** — https://henri-overrath.github.io/fiamed-pflege/, GitHub
       Pages, automatisch via `.github/workflows/deploy-pages.yml` bei jedem Push. Getestet:
