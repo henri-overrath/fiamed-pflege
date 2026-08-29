@@ -267,7 +267,7 @@
       panel.innerHTML = `
         <div class="section-head"><div><h2>PIN ändern</h2><p>Schützt weiterhin dieselben Daten — der Wiederherstellungscode bleibt dabei gültig.</p></div></div>
         <form id="pinChangeForm" class="form-grid">
-          <label>Aktuelle PIN<input type="password" inputmode="numeric" pattern="[0-9]*" id="pinChangeCurrent" name="currentPin" autocomplete="current-password" required></label>
+          <label>Aktuelle PIN<input type="password" inputmode="numeric" pattern="[0-9]*" id="pinChangeCurrent" name="currentPin" autocomplete="one-time-code" required></label>
           <label>Neue PIN<input type="password" inputmode="numeric" pattern="[0-9]*" id="pinChangeNew1" name="newPin1" autocomplete="off" required></label>
           <label>Neue PIN bestätigen<input type="password" inputmode="numeric" pattern="[0-9]*" id="pinChangeNew2" name="newPin2" autocomplete="off" required></label>
           <button type="button" class="lock-link" id="pinChangeToggle">👁 PIN anzeigen</button>
@@ -450,7 +450,14 @@
         <h1>FiaMed Pflege</h1>
         <p>Bitte PIN eingeben.</p>
         <form id="unlockForm">
-          <input type="password" inputmode="numeric" pattern="[0-9]*" id="pinInput" autocomplete="current-password" autofocus required>
+          <!-- autocomplete: bewusst "one-time-code", NICHT "current-password" oder "off".
+               Henri meldete 26.08.2026 "Falsche PIN" auf seinem Mac nach Safari-Neustart:
+               Safari hatte einen alten Test-PIN im Schlüsselbund und füllte ihn unsichtbar
+               ein (man sieht ja nur Punkte). "off" reicht hier NICHT — Safari ignoriert das
+               bei type="password" bewusst, um Passwortmanager zu fördern. "one-time-code"
+               ordnet das Feld als Einmalcode ein, den Safari nicht aus dem Schlüsselbund
+               befüllt. Bitte nicht zurückändern. -->
+          <input type="password" inputmode="numeric" pattern="[0-9]*" id="pinInput" autocomplete="one-time-code" autofocus required>
           <p class="lock-error" id="unlockError" hidden></p>
           <button type="submit" class="lock-btn">Entsperren</button>
         </form>
