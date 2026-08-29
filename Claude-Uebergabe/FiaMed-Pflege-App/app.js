@@ -177,16 +177,27 @@
      dieselbe Funktion, die auch die Patientensuche tippfehler-tolerant macht) auf den
      ähnlichsten Begriff korrigiert - aber nur bei kleinen Abweichungen, damit z. B. Patienten-
      oder Materialnamen nicht versehentlich verändert werden. */
-  const PILOT_KEYWORDS=['hallo','hi','moin','morgen','tag','abend','wie','geht','es','dir','danke','wer','bist','kannst','spaet','uhr','uhrzeit','datum','welcher','heute','fehlen','fehlt','offene','offen','noch','patient','patienten','material','nachbestellen','leer','brauche','liste','kilometer','diesen','monat','arbeitszeit','arbeite','stunden','bericht','tagesbericht','statistik','kalender','einstellung','einstellungen','zeige','oeffne','offne','tour','heutige','starte','start','beende','beendet','markiere','als','besucht','besuch','loesche','losche','entferne','navigation','witz','erzaehl','wetter','gebaut','programmiert','fertig','bin','ich','fuer'];
+  const PILOT_KEYWORDS=['hallo','hi','moin','morgen','tag','abend','wie','geht','es','dir','danke','wer','bist','kannst','spaet','uhr','uhrzeit','datum','welcher','heute','fehlen','fehlt','offene','offen','noch','patient','patienten','material','nachbestellen','leer','brauche','liste','kilometer','diesen','monat','arbeitszeit','arbeite','stunden','bericht','tagesbericht','statistik','kalender','einstellung','einstellungen','zeige','oeffne','offne','tour','heutige','starte','start','beende','beendet','markiere','als','besucht','besuch','loesche','losche','entferne','navigation','witz','erzaehl','wetter','gebaut','programmiert','fertig','bin','ich','fuer','home','startseite','uebersicht','plus','minus','mal','durch','geteilt','rechne','rechnen'];
   function pilotWordFix(w){const nw=normal(w);if(nw.length<3||PILOT_KEYWORDS.includes(nw))return nw;let best=null,bestD=Infinity;for(const k of PILOT_KEYWORDS){const d=lev(nw,k);if(d<bestD){bestD=d;best=k}}return best&&bestD<=Math.max(1,Math.floor(nw.length*.25))?best:nw}
   function pilotNormal(q){return String(q).split(/\s+/).map(pilotWordFix).join('')}
+  /* Witze: keiner soll zweimal hintereinander drankommen, deshalb merkt sich der Pilot
+     den zuletzt erzählten (nur im Speicher, geht beim Neuladen wieder verloren - das ist
+     hier egal, es geht nur ums Nicht-direkt-Wiederholen). */
+  const PILOT_JOKES=['Warum können Geister so schlecht lügen? Weil man durch sie hindurchsieht! 👻😄','Was macht ein Keks unterm Baum? Er krümelt! 🍪😄','Warum weinen Kartoffeln nicht? Weil sie Chips vom Leben sind! 🥔😄','Was sagt ein Pirat am 80. Geburtstag? Schatzsuchend! 🏴‍☠️😄','Warum können Fahrräder nicht alleine stehen? Weil sie zu zweirädrig sind! 🚲😄','Was ist grün und klopft an der Tür? Ein Klopfsalat! 🥬😄','Warum hat der Keks geweint? Seine Mama war ein Vollkorn! 🍪😢','Was macht ein Clown im Büro? Faxen! 🤡😄','Warum ging der Kalender ins Fitnessstudio? Er wollte fitter werden! 📅💪'];
+  let pilotLastJoke=-1;
+  function pilotJoke(){let i;do{i=Math.floor(Math.random()*PILOT_JOKES.length)}while(i===pilotLastJoke&&PILOT_JOKES.length>1);pilotLastJoke=i;return PILOT_JOKES[i]}
+  /* Einfaches Kopfrechnen: erkennt "Zahl Rechenzeichen Zahl" irgendwo im (Original-)Satz,
+     als Ziffern (nicht ausgeschrieben) - "25 plus 30", "2 + 2", "10 mal 4", "20 durch 5". */
+  function pilotMath(q){const m=q.match(/(-?\d+(?:[.,]\d+)?)\s*(\+|-|x|\*|\/|plus|minus|mal|geteilt durch|durch)\s*(-?\d+(?:[.,]\d+)?)/i);if(!m)return null;const a=parseFloat(m[1].replace(',','.')),op=m[2].toLowerCase(),b=parseFloat(m[3].replace(',','.'));let res;if(op==='+'||op==='plus')res=a+b;else if(op==='-'||op==='minus')res=a-b;else if(op==='x'||op==='*'||op==='mal')res=a*b;else{if(b===0)return 'Durch 0 teilen geht leider nicht 😅';res=a/b}return '🧮 Das sind '+(Number.isInteger(res)?res:res.toFixed(2).replace('.',',')).toString()+'.'}
 
   function ask(q){
     const n=pilotNormal(q),p=patientFromText(q),openPatients=active().filter(x=>!x.archived&&x.status!=='done'),allToday=active().filter(x=>!x.archived),now=new Date();
     pilotMessage(q,'user');
     let answer='',confirmation='';
     const openView=(id,label)=>{show(id);answer='📂 '+label+' ist offen.'};
+    const math=pilotMath(q);
     if(/1\s*\+\s*1/.test(q)) answer='2️⃣ Aber ich bin fürs Pflege-Rechnen da, nicht für Mathe-Hausaufgaben 😄';
+    else if(math) answer=math;
     else if(/^(hallo|hi|moin|guten\s*morgen|guten\s*tag|guten\s*abend)\b/i.test(q.trim())) answer='Hallo! 👋 Ich bin PflegePilot – frag mich zu Tour, Patienten, Material, Kilometern oder Berichten.';
     else if(/wiegehtes|wiegehts/.test(n)) answer='Mir geht’s gut, danke! 😊 Was brauchst du?';
     else if(/werbistdu|wasbistdu/.test(n)) answer='Ich bin PflegePilot 🚑 – dein Helfer für Tour, Patienten, Material & Berichte.';
@@ -196,7 +207,7 @@
     else if(/wiespaet|uhrzeit/.test(n)) answer='🕐 Es ist '+now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr.';
     else if(/welchertag|welchesdatum/.test(n)) answer='📅 Heute ist '+now.toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long'})+'.';
     else if(/wetter/.test(n)) answer='Kein Internetzugang hier drin 🌦️ – fürs Wetter musst du kurz aus dem Fenster schauen 😉';
-    else if(/witz|erzaehl/.test(n)) answer=['Warum können Geister so schlecht lügen? Weil man durch sie hindurchsieht! 👻😄','Was macht ein Keks unterm Baum? Er krümelt! 🍪😄','Warum weinen Kartoffeln nicht? Weil sie Chips vom Leben sind! 🥔😄'][Math.floor(Math.random()*3)];
+    else if(/witz|erzaehl/.test(n)) answer=pilotJoke();
     else if(/binichfertig|fertigheute|tourfertig/.test(n)) answer=allToday.length?(openPatients.length?'Noch '+openPatients.length+' offen. 💪':'Ja, alle erledigt! 🎉'):'Heute ist noch keine Tour geplant.';
     else if(/kilometer.*monat|monat.*kilometer/.test(n)){const mk=Object.entries(state.kilometerLog||{}).filter(([d])=>new Date(d).getMonth()===now.getMonth()&&new Date(d).getFullYear()===now.getFullYear()).reduce((s,[,x])=>s+Number(x),0);answer='🚗 Diesen Monat: '+mk.toFixed(1)+' km.';}
     else if(/was.*(heute|fehlt)|patientenfehlen|offene.*patient|nochoffen/.test(n)) answer=allToday.length?'📋 Heute: '+allToday.length+' Patienten. Noch offen: '+(openPatients.map(x=>x.name).join(', ')||'keine – alles erledigt! 🎉')+'.':'Für heute ist noch keine Tour geplant.';
@@ -207,6 +218,7 @@
     else if(/statistik/.test(n)) openView('statistics','die Statistik');
     else if(/kalender/.test(n)) openView('calendar','der Kalender');
     else if(/einstellung/.test(n)) openView('settings','die Einstellungen');
+    else if(/(zeige|offne|oeffne).*(startseite|home|uebersicht)/.test(n)) openView('home','die Startseite');
     else if(/(zeige|offne|oeffne).*material/.test(n)) openView('materials','die Materialverwaltung');
     else if(/(zeige|offne|oeffne).*(tour|heutig)/.test(n)) openView('dayplan','deine heutige Tour');
     else if(/starte.*tour|tour.*start/.test(n)){if(state.tourStartedAt)answer='⏱️ Deine Tour läuft schon seit '+new Date(state.tourStartedAt).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+'.';else{answer='Soll ich die Tour-Checkliste öffnen? Die Tour startet erst nach deiner Bestätigung.';confirmation=pilotConfirm('Tour vorbereiten','startTour')}}
