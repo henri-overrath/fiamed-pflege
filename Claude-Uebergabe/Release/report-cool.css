@@ -1,0 +1,43 @@
+/* Schicke Tagesbericht-Karte (Bildschirm) - orientiert sich am Look der Druckansicht,
+   aber mit den echten Farb-Variablen der App (funktioniert dadurch auch im Dark Mode). */
+.rc-card{border-radius:22px;overflow:hidden;box-shadow:var(--shadow);background:var(--card);margin:18px 0}
+.rc-hero{padding:24px 26px;background:linear-gradient(135deg,#173f7c,var(--blue));color:#fff;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.rc-brand{display:flex;align-items:center;gap:9px;font-size:16px;font-weight:700}
+.rc-mark{width:28px;height:28px;border-radius:9px;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:15px}
+.rc-hero h1{margin:10px 0 3px;font-size:22px;letter-spacing:-.02em}
+.rc-hero p{margin:0;opacity:.85;font-size:12.5px}
+.rc-date{text-align:right;font-size:12.5px;opacity:.85}
+.rc-date b{display:block;font-size:14px;opacity:1}
+.rc-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:18px 22px 0}
+.rc-fact{background:var(--bg);border-radius:14px;padding:12px;text-align:center}
+.rc-fact span{display:block;font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.rc-fact b{display:block;font-size:18px;margin-top:5px;color:var(--blue)}
+.rc-grid{display:grid;gap:12px;padding:16px 22px 22px}
+.rc-section{border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.rc-section h2{margin:0 0 8px;font-size:11.5px;color:var(--blue);text-transform:uppercase;letter-spacing:.04em;font-weight:800}
+.rc-section ul{margin:0;padding-left:16px;font-size:13.5px}
+.rc-section li{margin:3px 0}
+.rc-empty{color:var(--muted);margin:0;font-size:13.5px}
+.rc-legacy{padding:18px}
+.rc-legacy-text{white-space:pre-wrap;font-family:inherit;font-size:13px;background:var(--bg);border-radius:12px;padding:14px;margin-top:8px}
+
+/* Gespeicherte Tagesberichte - Liste */
+.rc-history-row{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px}
+.rc-history-date{flex:1;min-width:0}
+.rc-history-date b{display:block;font-size:14px}
+.rc-chips{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+.rc-chip{font-size:11px;font-weight:700;color:var(--muted);background:var(--bg);border-radius:999px;padding:2px 8px}
+.rc-icon-btn{border:0;background:var(--blue-soft);color:var(--blue);border-radius:10px;width:34px;height:34px;font-size:14px;cursor:pointer;flex:0 0 auto}
+.rc-icon-btn.danger{background:#fff0f2;color:var(--red)}
+
+/* Tabellen-Ansicht */
+.rc-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;margin-top:14px}
+table.rc-table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:600px}
+table.rc-table th,table.rc-table td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+table.rc-table th{color:var(--muted);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.03em;background:var(--bg)}
+table.rc-table tr:last-child td{border-bottom:0}
+
+@media(max-width:760px){
+  .rc-facts{grid-template-columns:1fr}
+  .rc-history-row{flex-wrap:wrap}
+}
