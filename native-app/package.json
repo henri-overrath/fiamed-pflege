@@ -1,0 +1,23 @@
+{
+  "name": "fiamed-pflege-native",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Native Android- und iOS-Huelle fuer FiaMed Pflege (Capacitor). Die eigentliche App-Logik liegt unveraendert in Claude-Uebergabe/FiaMed-Pflege-App/ - dieser Ordner packt sie nur in installierbare Apps.",
+  "scripts": {
+    "sync": "cap sync",
+    "open:android": "cap open android",
+    "open:ios": "cap open ios",
+    "build:android-debug": "cd android && ./gradlew assembleDebug",
+    "build:android-release": "cd android && ./gradlew assembleRelease",
+    "icons": "capacitor-assets generate"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/cli": "^8.5.1",
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/ios": "^8.5.1"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5"
+  }
+}

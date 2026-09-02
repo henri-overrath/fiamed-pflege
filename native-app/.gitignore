@@ -22,3 +22,13 @@ android/.idea/
 # "Updates" signieren, die Android als vertrauenswürdig einstuft.
 android/keystore/
 android/keystore.properties
+
+# iOS Build-Ausgaben (werden immer neu erzeugt, nicht versioniert)
+ios/App/build/
+ios/App/DerivedData/
+ios/App/Pods/
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/xcuserdata/
+ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
+*.ipa
+*.xcarchive
