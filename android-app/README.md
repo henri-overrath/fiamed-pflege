@@ -60,22 +60,62 @@ Erzeugt automatisch alle Auflösungen und einen Splashscreen dazu.
   (Tools → Device Manager → „Create device") — das kann nicht per Kommandozeile erledigt
   werden, ohne ein komplettes System-Image herunterzuladen.
 
-## Was geprüft, aber nicht auf einem echten Gerät/Emulator getestet werden konnte
+## Auf einem echten Emulator bestätigt (02.09.2026)
 
-- **Build erfolgreich:** `./gradlew assembleDebug` läuft fehlerfrei durch, alle Web-Dateien
-  (`app.js`, `lock.js`, `share.js`, …) stecken nachweislich in der erzeugten APK.
-- **`tel:`/`mailto:`/Karten-Links geprüft (im Quellcode, nicht live):** Capacitors
-  `Bridge.launchIntent()` öffnet jede URL, die nicht zur App selbst gehört, über
-  `Intent.ACTION_VIEW` — das ist der Standard-Mechanismus, über den Android `tel:` an die
-  Telefon-App und `mailto:` an die Mail-App weiterreicht. Anrufen, Navigation und
-  „Fehler melden" sollten also ohne weitere Konfiguration funktionieren.
-- **`navigator.share()` (Tourenpaket senden, Tagesbericht/Nachbestellung teilen) — unklar,
-  ob Android-WebView das zuverlässig unterstützt.** Die App hat bereits einen sauberen
-  Fallback (`if(navigator.share) … else … Zwischenablage`), der greift, wenn die Funktion
-  fehlt. Ob sie im WebView vorhanden, aber unzuverlässig ist, lässt sich nur auf einem
-  echten Gerät/Emulator sehen — **bitte einmal ausprobieren**, sobald ein Emulator läuft.
-  Falls es hakt: `@capacitor/share` ist die offizielle, zuverlässige Lösung dafür (noch
-  nicht eingebaut).
+- PIN einrichten funktioniert (WebCrypto/PBKDF2/AES-GCM aus `lock.js` läuft im Android-WebView)
+- `tel:` (Anrufen), `mailto:` („Fehler melden") und Teilen (`navigator.share()` bzw.
+  Zwischenablage-Fallback) wurden alle im Emulator ausprobiert und funktionieren
+
+Noch nicht getestet: echtes Gerät (nur Emulator bisher), Verhalten bei sehr schlechtem/keinem
+Empfang mitten in der Nutzung (sollte wegen der festen Bündelung egal sein, aber nie live
+beobachtet).
+
+## Release-APK bauen (signiert, installierbar als Update)
+
+Ein `assembleDebug`-Build reicht zum Ausprobieren, aber Android markiert Debug-Builds anders
+und sie lassen sich nicht sauber als Update installieren. Für eine echte Weitergabe:
+
+```bash
+export JAVA_HOME="$HOME/.local-jdks/jdk-21.0.12.1+1/Contents/Home"
+cd android-app/android
+./gradlew assembleRelease
+```
+
+Ergebnis liegt unter `android/app/build/outputs/apk/release/app-release.apk`.
+
+**Voraussetzung:** `android/keystore.properties` + `android/keystore/fiamed-release.jks`
+müssen vorhanden sein (beide bewusst NICHT im Git-Repo, siehe `.gitignore` — dieses Repo ist
+öffentlich). Ohne die beiden Dateien bricht `assembleRelease` mit einer klaren Fehlermeldung
+ab; `assembleDebug` funktioniert davon unabhängig immer.
+
+### ⚠️ Diese beiden Dateien unbedingt sichern (z. B. Passwort-Manager + externe Sicherung)
+
+**Ohne sie kann kein künftiges Update mehr signiert werden.** Android erkennt eine neue APK
+nur dann als Update einer bestehenden Installation, wenn sie mit demselben Schlüssel signiert
+ist. Geht der Schlüssel verloren, bliebe nur: Tante muss die App komplett deinstallieren und
+neu installieren — und verliert dabei alle lokalen Daten (Patienten, Touren, PIN), weil die
+Verschlüsselung an die Installation gebunden ist.
+
+## Verteilung ohne Play Store
+
+Fertige APK als GitHub-Release hochladen (kostenlos, kein zusätzliches Hosting nötig,
+unabhängig von der eigentlichen Web-App/GitHub-Pages-Seite):
+
+```bash
+gh release create android-v1.1 android/app/build/outputs/apk/release/app-release.apk \
+  --title "FiaMed Pflege – Android-App v1.1" \
+  --notes "Was ist neu: ..."
+```
+
+(Versionsnummer in `android/app/build.gradle` bei `versionCode`/`versionName` vorher
+hochzählen — Android installiert eine APK mit gleichem oder niedrigerem `versionCode` nicht
+als Update.)
+
+Der Tante dann den Direktlink zur Datei schicken (z. B. per WhatsApp-Nachricht als Text-Link,
+nicht als Dateianhang — manche Messenger blockieren APK-Anhänge direkt). Sie öffnet den Link
+im Handy-Browser, tippt die heruntergeladene Datei an, erlaubt einmalig „Installation aus
+dieser Quelle", fertig. Bei jedem weiteren Update reicht: neuen Link schicken, sie installiert
+einfach darüber — ihre Daten bleiben erhalten.
 
 ## So testest du es selbst
 
