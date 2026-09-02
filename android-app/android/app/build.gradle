@@ -1,5 +1,16 @@
 apply plugin: 'com.android.application'
 
+// Signier-Konfiguration fuer Release-Builds. Passwoerter liegen bewusst NICHT hier im
+// Code, sondern in keystore.properties (siehe .gitignore - darf nie ins Repo, das ist
+// oeffentlich). Ohne diese Datei baut assembleDebug weiterhin normal, assembleRelease
+// bricht dann mit einer klaren Fehlermeldung ab statt versehentlich unsigniert zu bauen.
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+def hasSigningConfig = keystorePropertiesFile.exists()
+if (hasSigningConfig) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "de.overrath.fiamedpflege"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,10 +27,38 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (hasSigningConfig) {
+            release {
+                storeFile rootProject.file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasSigningConfig) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+}
+
+if (!hasSigningConfig) {
+    tasks.whenTaskAdded { task ->
+        if (task.name == 'assembleRelease' || task.name == 'bundleRelease') {
+            task.doFirst {
+                throw new GradleException(
+                    "keystore.properties fehlt (siehe android-app/README.md, Abschnitt " +
+                    "'Release-APK bauen') - ohne Signier-Schluessel kann kein Release " +
+                    "gebaut werden, der sich als Update ueber eine bestehende Installation " +
+                    "installieren laesst."
+                )
+            }
         }
     }
 }

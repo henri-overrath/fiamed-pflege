@@ -17,3 +17,8 @@ android/.idea/
 # assets/icon.png bleibt im Repo (Quelle fuer "npm run icons" / npx capacitor-assets).
 # Generierte Icon-/Splash-PNGs unter android/app/src/main/res/ bleiben ebenfalls im
 # Repo - das sind Quelldateien fuer Gradle, kein Build-Output.
+
+# Signierschlüssel - darf NIEMALS ins Repo, sonst könnte jeder gefälschte
+# "Updates" signieren, die Android als vertrauenswürdig einstuft.
+android/keystore/
+android/keystore.properties
