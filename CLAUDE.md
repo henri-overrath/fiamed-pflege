@@ -73,26 +73,48 @@ Zeichen sein, dass eine andere Sitzung gerade im selben Ordner arbeitet.
 - **Nichts kaputtmachen:** Vorhandene Funktionen bleiben, außer Henri will es ausdrücklich anders.
 - Wenn etwas nicht geht, ehrlich sagen — und einen einfacheren Weg vorschlagen.
 
-## 🔒 PIN-Sperre + Verschlüsselung (seit 22.08.2026 LIVE)
+## 🔒 Zugriffsschutz + Verschlüsselung (Stand 02.09.2026)
 
-Die App ist jetzt beim Start hinter einer PIN gesperrt, und die gespeicherten Daten liegen
-verschlüsselt auf der Platte statt im Klartext.
+**Die Android-/iPhone-App (Ordner `native-app/`) ist seit 02.09.2026 der einzige
+Veröffentlichungsweg.** Die Web-Version (GitHub Pages, lokaler Testserver) dient nur noch
+Henri zum Programmieren und Anschauen — mit erfundenen Testdaten (Regel 1).
 
-- **`index.html` lädt `app.js` NICHT mehr direkt.** Stattdessen steht dort
-  `<script src="lock.js">`. `lock.js` zeigt zuerst die PIN-Abfrage und hängt `app.js` erst
-  per JavaScript nach, sobald die PIN stimmt. **Diese Struktur nie rückgängig machen** —
-  wer `<script src="app.js">` wieder direkt einfügt, schaltet die Sperre komplett ab, ohne
-  dass es auffällt.
-- `app.js` selbst wurde **nicht verändert** und merkt vom Umbau nichts — `lock.js` schiebt
+`lock.js` erkennt beim Start selbst, wo es läuft, und verhält sich unterschiedlich:
+
+- **Native App:** Beim Start (und nach 2 Minuten im Hintergrund) fragt die App die
+  **Gerätesperre** ab — Face ID, Fingerabdruck oder Geräte-Code, je nachdem, was auf dem
+  Handy eingerichtet ist. **Es gibt keine eigene PIN mehr und keinen Wiederherstellungscode.**
+  Die Daten liegen weiterhin AES-256-GCM-verschlüsselt im Speicher; der Hauptschlüssel liegt
+  im Schlüsselbund (iOS) bzw. Keystore (Android). Alte Installationen aus der PIN-Zeit werden
+  beim ersten Start einmalig umgestellt (alte PIN oder Wiederherstellungscode ein letztes Mal
+  eingeben). Ohne Gerätesperre startet die App nicht — sie bittet erst darum, eine
+  einzurichten.
+- **Web-Version:** **Kein Schutz.** `app.js` wird direkt geladen, der Speicher bleibt
+  Klartext. Liegen aus der PIN-Zeit noch verschlüsselte Daten im Browser, fragt die App
+  einmalig nach der alten PIN, entschlüsselt dauerhaft und entfernt die PIN.
+
+Was für beide gilt:
+
+- **`index.html` lädt `app.js` NICHT direkt.** Dort steht `<script src="lock.js">`, und
+  `lock.js` hängt `app.js` erst nach, wenn (nativ) entsperrt wurde. **Diese Struktur nie
+  rückgängig machen** — wer `<script src="app.js">` wieder direkt einfügt, schaltet den
+  Schutz der nativen App komplett ab, ohne dass es auffällt.
+- `app.js` selbst wurde **nicht verändert** und merkt von alldem nichts — `lock.js` schiebt
   sich zwischen `app.js` und den Browser-Speicher und ver-/entschlüsselt dabei unsichtbar.
-- **`lock.js` ist Papa-Bereich** (Kryptografie, Schlüssel-Handling). Henri kann in `app.js`
-  weiterbauen wie gewohnt — an `lock.js` bitte nichts ändern, ohne vorher zu fragen.
-- Es gibt keinen Passwort-Reset per Mail (kein Server!) — stattdessen einen einmaligen
-  Wiederherstellungscode, der bei der Ersteinrichtung angezeigt wird. „PIN ändern" gibt es
-  in den Einstellungen.
-- Details/Testprotokoll: Commit „PIN-Sperre + lokale Verschlüsselung (Stufe 1, Papa-Plan)"
-  (die genaue Prüfsumme hat sich durch die Historienbereinigung vom 22.08.2026 geändert,
-  einfach im Log danach suchen: `git log --oneline --all --grep=PIN-Sperre`).
+- **`lock.js` ist Papa-Bereich** (Kryptografie, Schlüssel-Handling, Plugin-Anbindung). Henri
+  kann in `app.js` weiterbauen wie gewohnt — an `lock.js` bitte nichts ändern, ohne vorher
+  zu fragen.
+- **Falle, die bis 02.09.2026 unbemerkt war:** Die Speicher-Weiche MUSS auf
+  `Storage.prototype` liegen, nicht auf dem `localStorage`-Objekt. WebKit (iOS-App, iPhone-
+  und Mac-Safari) überschreibt bei `localStorage.getItem = …` die Methode NICHT, sondern legt
+  einen Speicher-Eintrag „getItem" an — die Daten lagen dadurch im Klartext, und der nächste
+  Start meldete „Falsche PIN", obwohl die PIN stimmte. Das war die eigentliche Ursache des
+  „PIN funktioniert nach Neustart nicht"-Problems der Handy-Apps. Im Simulator nachgewiesen
+  und behoben; Details im Kommentar über `installShim()` in `lock.js`.
+- Die native App braucht zwei Capacitor-Plugins (`@aparajita/capacitor-biometric-auth`,
+  `@aparajita/capacitor-secure-storage`), angesprochen ohne Bundler über
+  `Capacitor.nativePromise`. Nach Änderungen an der Web-App: `cd native-app && npm run sync`,
+  dann Android/iOS neu bauen (siehe `native-app/README.md`).
 
 ## 🔄 Tourenaustausch ohne Server (seit 23.08.2026 LIVE)
 
@@ -120,7 +142,7 @@ Senden, ein Tipp zum Empfangen.
   Person, ganz ohne geteilte IDs oder Server. Existiert für den Tag bereits eine Planung,
   fragt die App vor dem Überschreiben nach (Regel 6).
 - **`share.js` ist eigener Papa-Bereich** (PBKDF2 + AES-256-GCM, komplett unabhängig von
-  `lock.js` und dessen PIN-Schlüssel) — bitte nichts daran ändern, ohne vorher zu fragen.
+  `lock.js` und dessen Hauptschlüssel) — bitte nichts daran ändern, ohne vorher zu fragen.
   Henri kann an der Bedienung in `app.js` (Zuteilungs-Auswahl, Senden-/Empfangen-Buttons)
   weiterbauen wie gewohnt.
 - **Das Team-Codewort ist kein Geräte-PIN.** Alle Beteiligten (Chefin + beide Fachkräfte)

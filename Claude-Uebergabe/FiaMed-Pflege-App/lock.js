@@ -1,23 +1,53 @@
 (() => {
   'use strict';
 
-  // Diese Datei sperrt die App hinter einer PIN und verschlüsselt die
-  // gespeicherten Daten. app.js wird bewusst NICHT verändert (dort gewinnt
-  // "die letzte Definition", jede Änderung dort ist riskant) — stattdessen
-  // wird app.js erst NACH erfolgreicher Entsperrung überhaupt geladen, und
-  // localStorage wird für app.js transparent aus-/verschlüsselt.
+  // ============================================================================
+  // lock.js — Zugriffsschutz und Verschlüsselung (Papa-Bereich)
+  //
+  // Diese Datei hat seit 02.09.2026 ZWEI Betriebsarten, die sie beim Start
+  // selbst erkennt:
+  //
+  //  1. NATIVE APP (Android/iOS über Capacitor, window.Capacitor vorhanden):
+  //     Die App wird mit der Gerätesperre entsperrt — Face ID, Fingerabdruck
+  //     oder Geräte-Code, je nachdem, was auf dem Handy eingerichtet ist. Es
+  //     gibt keine eigene PIN mehr und keinen Wiederherstellungscode: Das
+  //     Geheimnis ist die Gerätesperre selbst, und die kann die Tante nicht
+  //     "vergessen", ohne dass auch das Handy gesperrt wäre.
+  //     Die Daten liegen weiterhin AES-256-GCM-verschlüsselt in localStorage.
+  //     Der Hauptschlüssel liegt im Schlüsselbund (iOS) bzw. Keystore (Android)
+  //     und wird bei jedem Start erst nach erfolgreicher Gerätesperre geholt.
+  //     Nach 2 Minuten im Hintergrund wird erneut entsperrt.
+  //
+  //  2. WEB-VERSION (Browser, GitHub Pages, Henris Entwicklungsumgebung):
+  //     KEIN Schutz mehr. Die Web-Version dient seit 02.09.2026 nur noch zum
+  //     Programmieren und Sichten mit erfundenen Testdaten (Regel 1 in
+  //     CLAUDE.md). app.js wird direkt geladen, localStorage bleibt Klartext.
+  //     Einzige Ausnahme: Liegen aus der PIN-Zeit noch verschlüsselte Daten im
+  //     Browser, fragt die App EINMAL nach der alten PIN (oder dem
+  //     Wiederherstellungscode), entschlüsselt die Daten dauerhaft und entfernt
+  //     die PIN. So kommt niemand an alte Daten nicht mehr heran, nur weil die
+  //     PIN abgeschafft wurde.
+  //
+  // In beiden Fällen gilt weiter: app.js wird NICHT verändert und merkt von
+  // alldem nichts. index.html lädt deshalb weiterhin lock.js statt app.js —
+  // lock.js entscheidet, wann app.js nachgeladen wird. Bitte nicht umbauen.
+  // ============================================================================
 
   const KEY = 'fiamed-pflege-v2';
   const LEGACY_KEY = 'fiamed-pflege-v1';
-  const LOCK_KEY = 'fiamed-pflege-lock-v1';
+  const LOCK_KEY = 'fiamed-pflege-lock-v1';           // Metadaten aus der PIN-Zeit (nur noch für die Umstellung)
   const APP_SCRIPT_SRC = 'app.js';
-  const PIN_ITERATIONS = 250000;
-  const RECOVERY_ITERATIONS = 250000;
-  const RECOVERY_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'; // ohne 0/O/1/I/L
+  const MASTER_KEY_ITEM = 'fiamed_master_key_v1';    // Eintrag im Schlüsselbund/Keystore (nativ)
+  const RELOCK_AFTER_MS = 2 * 60 * 1000;             // nativ: nach so langer Zeit im Hintergrund erneut entsperren
+  const KEYCHAIN_ACCESS_WHEN_UNLOCKED = 0;           // iOS: Eintrag nur bei entsperrtem Gerät lesbar, wandert bei verschlüsselten Backups mit
   const MAX_FAILS_BEFORE_THROTTLE = 5;
+
+  const cap = window.Capacitor;
+  const isNative = !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
 
   const realGetItem = Storage.prototype.getItem.bind(localStorage);
   const realSetItem = Storage.prototype.setItem.bind(localStorage);
+  const realRemoveItem = Storage.prototype.removeItem.bind(localStorage);
 
   let masterKey = null;
   let cachedPlaintext = null;
@@ -45,20 +75,14 @@
   function randomBytes(n) {
     return crypto.getRandomValues(new Uint8Array(n));
   }
-  function makeRecoveryCode() {
-    const raw = randomBytes(20);
-    let out = '';
-    for (let i = 0; i < raw.length; i++) {
-      out += RECOVERY_ALPHABET[raw[i] % RECOVERY_ALPHABET.length];
-      if ((i + 1) % 5 === 0 && i !== raw.length - 1) out += '-';
-    }
-    return out;
-  }
   function normalizeRecoveryCode(code) {
     return code.toUpperCase().replace(/[^A-Z0-9]/g, '');
   }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
 
-  // ---------- Schlüssel-Ableitung (PIN/Code -> AES-Schlüssel) ----------
+  // ---------- Schlüssel-Ableitung (PIN/Code -> AES-Schlüssel), nur noch für die Umstellung ----------
   async function deriveWrappingKey(secretText, saltB64, iterations) {
     const salt = base64ToBytes(saltB64);
     const baseKey = await crypto.subtle.importKey('raw', textEncoder.encode(secretText), 'PBKDF2', false, ['deriveKey']);
@@ -70,17 +94,14 @@
       ['encrypt', 'decrypt']
     );
   }
-
-  async function wrapMasterKey(wrappingKey, masterKeyBytes) {
-    const iv = randomBytes(12);
-    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, wrappingKey, masterKeyBytes);
-    return { iv: bytesToBase64(iv), ct: bytesToBase64(new Uint8Array(ct)) };
-  }
   async function unwrapMasterKey(wrappingKey, wrapped) {
     const iv = base64ToBytes(wrapped.iv);
     const ct = base64ToBytes(wrapped.ct);
     const raw = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, wrappingKey, ct);
     return new Uint8Array(raw);
+  }
+  function importMasterKey(rawBytes) {
+    return crypto.subtle.importKey('raw', rawBytes, { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
   }
 
   // ---------- Daten ver-/entschlüsseln ----------
@@ -104,15 +125,10 @@
     } catch { return false; }
   }
 
-  // ---------- IndexedDB-Spiegel der Lock-Metadaten ----------
-  // Ohne pinSalt/pinWrapped/recoverySalt/recoveryWrapped sind die verschlüsselten
-  // Daten UNWIDERRUFLICH verloren — das ist kein Bug, sondern der Sinn der
-  // Verschlüsselung (es gibt bewusst keinen Server-Zweitschlüssel). localStorage
-  // kann von Browsern aber ohne Vorwarnung geräumt werden (z. B. Safaris
-  // "Intelligent Tracking Prevention" nach längerer Nichtbenutzung der Seite).
-  // Eine zweite, unabhängige Kopie in IndexedDB (anderer Speicher, andere
-  // Räum-Regeln) senkt das Risiko eines Totalverlusts. Beide Speicher werden bei
-  // jedem Lesen/Schreiben synchron gehalten; fehlt eine Kopie, heilt die andere sie.
+  // ---------- IndexedDB-Spiegel der alten PIN-Metadaten ----------
+  // Aus der PIN-Zeit: eine zweite Kopie der Lock-Metadaten, weil Browser
+  // localStorage ohne Vorwarnung räumen können. Wird nur noch gelesen (für die
+  // Umstellung) und beim Aufräumen gelöscht.
   const IDB_NAME = 'fiamed-lock-backup';
   const IDB_STORE = 'meta';
   const IDB_KEY = 'current';
@@ -147,8 +163,35 @@
       });
     } catch (err) { console.error('IndexedDB-Sicherung der Lock-Metadaten fehlgeschlagen', err); }
   }
+  async function idbDeleteMeta() {
+    try {
+      const db = await openLockDb();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).delete(IDB_KEY);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    } catch { /* nichts zu löschen */ }
+  }
 
-  // ---------- localStorage-Weiche für app.js ----------
+  async function loadLockMeta() {
+    const raw = realGetItem(LOCK_KEY);
+    if (raw) {
+      try { return JSON.parse(raw); } catch { /* beschädigt: unten auf IndexedDB ausweichen */ }
+    }
+    return idbGetMeta();
+  }
+  async function saveLockMeta(meta) {
+    realSetItem(LOCK_KEY, JSON.stringify(meta));
+    await idbSetMeta(meta);
+  }
+  async function clearLockMeta() {
+    realRemoveItem(LOCK_KEY);
+    await idbDeleteMeta();
+  }
+
+  // ---------- localStorage-Weiche für app.js (nur nativ aktiv) ----------
   // app.js liest/schreibt localStorage[KEY] ganz normal, synchron, wie eh und je.
   // Diese Weiche hält den Klartext nur im Speicher (nie persistiert) und
   // schreibt eine verschlüsselte Fassung in die echte localStorage.
@@ -160,11 +203,8 @@
   // Tour wirkte zurückgesetzt, wenn die App direkt nach einer Änderung
   // weggewischt wurde):
   //
-  // 1. Schreibvorgänge werden ZUSAMMENGEFASST statt aufgereiht. Vorher hängte
-  //    jedes setItem einen weiteren Verschlüsselungslauf an eine Kette, obwohl
-  //    nur der jeweils letzte Stand zählt — bei mehreren schnellen Änderungen
-  //    warteten alle aufeinander und das Fenster wuchs. Jetzt wird immer nur der
-  //    neueste Stand geschrieben, ältere Zwischenstände werden übersprungen.
+  // 1. Schreibvorgänge werden ZUSAMMENGEFASST statt aufgereiht: Es wird immer nur
+  //    der neueste Stand geschrieben, ältere Zwischenstände werden übersprungen.
   // 2. Beim Wechsel in den Hintergrund (visibilitychange/pagehide) wird sofort
   //    ausgeschrieben. Beim Wegwischen geht die App immer erst in den
   //    Hintergrund, bevor sie beendet wird — dieser Moment reicht in der Praxis.
@@ -178,10 +218,7 @@
           const envelope = await encryptState(masterKey, value);
           realSetItem(KEY, envelope);
           // Erst NACH dem tatsächlichen Schreiben als erledigt markieren — und nur,
-          // wenn inzwischen kein neuerer Stand eingetroffen ist. Wichtig für den
-          // Fall, dass iOS die Seite mitten im Vorgang einfriert: dann bleibt der
-          // Stand als offen vermerkt und wird beim Wiederaufwachen (pageshow)
-          // nachgeholt, statt lautlos verloren zu gehen.
+          // wenn inzwischen kein neuerer Stand eingetroffen ist.
           if (pendingPlaintext === value) pendingPlaintext = null;
         }
       } catch (err) {
@@ -192,134 +229,35 @@
     })();
   }
 
+  // ⚠️ Die Weiche MUSS auf Storage.prototype liegen, nicht auf dem
+  // localStorage-Objekt selbst. Bis 02.09.2026 stand hier
+  // `localStorage.getItem = function …` — in Chrome/Firefox überschreibt das die
+  // Methode, in WebKit (iOS-App, iPhone-Safari, Mac-Safari) aber NICHT: WebKit
+  // legt stattdessen einen Speicher-Eintrag namens "getItem" mit dem
+  // Funktionstext an, und app.js redet weiter mit dem echten localStorage.
+  // Folge: Die Daten lagen im Klartext auf dem Gerät, und beim nächsten Start
+  // scheiterte das "Entschlüsseln" des Klartexts — was als "Falsche PIN"
+  // angezeigt wurde, obwohl die PIN stimmte. Im iPhone-Simulator nachgewiesen
+  // (localstorage.sqlite3 enthielt "getItem", "setItem" und den Klartext).
+  const originalGetItem = Storage.prototype.getItem;
+  const originalSetItem = Storage.prototype.setItem;
   function installShim() {
-    localStorage.getItem = function (k) {
-      if (k === KEY) return cachedPlaintext;
-      return realGetItem(k);
+    Storage.prototype.getItem = function (k) {
+      if (this === localStorage && k === KEY) return cachedPlaintext;
+      return originalGetItem.call(this, k);
     };
-    localStorage.setItem = function (k, v) {
-      if (k === KEY) {
+    Storage.prototype.setItem = function (k, v) {
+      if (this === localStorage && k === KEY) {
         cachedPlaintext = v;
         pendingPlaintext = v;
         flushPendingWrite();
         return;
       }
-      return realSetItem(k, v);
+      return originalSetItem.call(this, k, v);
     };
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') flushPendingWrite();
-    });
+    document.addEventListener('visibilitychange', flushPendingWrite);
     window.addEventListener('pagehide', flushPendingWrite);
-    // Rückkehr aus dem Hintergrund: nachholen, was beim Einfrieren liegengeblieben ist.
     window.addEventListener('pageshow', flushPendingWrite);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') flushPendingWrite();
-    });
-  }
-
-  // ---------- Lock-Metadaten ----------
-  // Liest bevorzugt aus localStorage; fehlt es dort, wird IndexedDB als
-  // Rückfallebene geprüft (und localStorage bei Erfolg gleich mitgeheilt).
-  // Erst wenn BEIDE Speicher leer sind, gilt "keine PIN eingerichtet".
-  async function loadLockMeta() {
-    const raw = realGetItem(LOCK_KEY);
-    if (raw) {
-      try {
-        const meta = JSON.parse(raw);
-        idbSetMeta(meta); // im Hintergrund nachziehen, falls die IndexedDB-Kopie fehlt
-        return meta;
-      } catch { /* localStorage-Eintrag beschädigt: unten auf IndexedDB ausweichen */ }
-    }
-    const fromIdb = await idbGetMeta();
-    if (fromIdb) {
-      realSetItem(LOCK_KEY, JSON.stringify(fromIdb));
-      return fromIdb;
-    }
-    return null;
-  }
-  async function saveLockMeta(meta) {
-    realSetItem(LOCK_KEY, JSON.stringify(meta));
-    await idbSetMeta(meta);
-  }
-
-  // ---------- App laden (erst NACH Entsperrung) ----------
-  function bootApp() {
-    hideOverlay();
-    setupPinChangeUI();
-    const s = document.createElement('script');
-    s.src = APP_SCRIPT_SRC;
-    document.body.appendChild(s);
-  }
-
-  // ---------- "PIN ändern" in den Einstellungen ----------
-  // app.js baut #settings bei jedem Aufruf komplett neu (innerHTML=...) und
-  // würde ein einmal eingefügtes Panel dabei wieder löschen. Ein
-  // MutationObserver setzt es deshalb nach jedem Neu-Rendern erneut ein.
-  function setupPinChangeUI() {
-    const settingsEl = document.getElementById('settings');
-    if (!settingsEl) return;
-    const inject = () => {
-      if (document.getElementById('pinChangePanel')) return;
-      const panel = document.createElement('div');
-      panel.id = 'pinChangePanel';
-      panel.className = 'panel';
-      panel.style.marginTop = '18px';
-      panel.innerHTML = `
-        <div class="section-head"><div><h2>PIN ändern</h2><p>Schützt weiterhin dieselben Daten — der Wiederherstellungscode bleibt dabei gültig.</p></div></div>
-        <form id="pinChangeForm" class="form-grid">
-          <label>Aktuelle PIN<input type="password" inputmode="numeric" pattern="[0-9]*" id="pinChangeCurrent" name="currentPin" autocomplete="one-time-code" required></label>
-          <label>Neue PIN<input type="password" inputmode="numeric" pattern="[0-9]*" id="pinChangeNew1" name="newPin1" autocomplete="off" required></label>
-          <label>Neue PIN bestätigen<input type="password" inputmode="numeric" pattern="[0-9]*" id="pinChangeNew2" name="newPin2" autocomplete="off" required></label>
-          <button type="button" class="lock-link" id="pinChangeToggle">👁 PIN anzeigen</button>
-          <p class="lock-error" id="pinChangeError" hidden></p>
-          <button type="submit" class="btn">PIN ändern</button>
-        </form>
-      `;
-      settingsEl.appendChild(panel);
-      wirePinVisibilityToggle('pinChangeToggle', ['pinChangeNew1', 'pinChangeNew2']);
-      document.getElementById('pinChangeForm').onsubmit = handlePinChangeSubmit;
-    };
-    inject();
-    new MutationObserver(inject).observe(settingsEl, { childList: true });
-  }
-
-  async function handlePinChangeSubmit(e) {
-    e.preventDefault();
-    const form = e.target;
-    const currentPin = form.currentPin.value.trim();
-    const newPin1 = form.newPin1.value.trim();
-    const newPin2 = form.newPin2.value.trim();
-    const err = document.getElementById('pinChangeError');
-    err.hidden = true;
-
-    if (!/^\d{4,8}$/.test(newPin1)) { err.textContent = 'Die neue PIN muss aus 4 bis 8 Ziffern bestehen.'; err.hidden = false; return; }
-    if (newPin1 !== newPin2) { err.textContent = 'Die beiden neuen PINs stimmen nicht überein.'; err.hidden = false; return; }
-
-    const meta = await loadLockMeta();
-    if (!meta) { err.textContent = 'Keine PIN eingerichtet.'; err.hidden = false; return; }
-
-    let masterKeyBytes;
-    try {
-      const currentWrapKey = await deriveWrappingKey(currentPin, meta.pinSalt, meta.pinIterations);
-      masterKeyBytes = await unwrapMasterKey(currentWrapKey, meta.pinWrapped);
-    } catch {
-      err.textContent = 'Die aktuelle PIN ist falsch.';
-      err.hidden = false;
-      return;
-    }
-
-    const newSalt = randomBytes(16);
-    const newWrapKey = await deriveWrappingKey(newPin1, bytesToBase64(newSalt), meta.pinIterations);
-    meta.pinSalt = bytesToBase64(newSalt);
-    meta.pinWrapped = await wrapMasterKey(newWrapKey, masterKeyBytes);
-    meta.failedAttempts = 0;
-    meta.lockedUntil = 0;
-    await saveLockMeta(meta);
-
-    form.reset();
-    err.hidden = false;
-    err.style.color = 'var(--green, #26aa72)';
-    err.textContent = 'PIN wurde geändert.';
   }
 
   // ---------- UI ----------
@@ -336,177 +274,435 @@
     if (overlay) overlay.remove();
     overlay = null;
   }
+  function on(id, handler) {
+    const el = document.getElementById(id);
+    if (el) el.onclick = handler;
+  }
 
-  // Blendet ein "👁 PIN anzeigen"-Umschalter ein, der beide Felder eines
-  // PIN-Bestätigungspaars synchron zwischen versteckt/sichtbar umschaltet.
-  // Grund: Mobile Browser (v. a. iOS Safari) schlagen bei zwei benachbarten
-  // password-Feldern manchmal unbemerkt ein eigenes, zufälliges Passwort für
-  // eines der beiden Felder vor — beide Felder zeigen dann nur Punkte, wirken
-  // identisch befüllt, sind es aber nicht. Sichtbar machen deckt das sofort auf.
-  function wirePinVisibilityToggle(toggleId, fieldIds) {
-    const toggle = document.getElementById(toggleId);
-    if (!toggle) return;
-    toggle.onclick = () => {
-      const showing = toggle.dataset.showing === '1';
-      fieldIds.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.type = showing ? 'password' : 'text';
+  // ---------- App laden (erst NACH Entsperrung bzw. sofort im Web) ----------
+  let appBooted = false;
+  function bootApp() {
+    if (appBooted) return;
+    appBooted = true;
+    hideOverlay();
+    if (isNative) {
+      setupProtectionInfoUI();
+      installRelock();
+    }
+    const s = document.createElement('script');
+    s.src = APP_SCRIPT_SRC;
+    document.body.appendChild(s);
+  }
+
+  // ---------- Hinweis "App-Schutz" in den Einstellungen (nur nativ) ----------
+  // app.js baut #settings bei jedem Aufruf komplett neu (innerHTML=...) und
+  // würde ein einmal eingefügtes Panel dabei wieder löschen. Ein
+  // MutationObserver setzt es deshalb nach jedem Neu-Rendern erneut ein.
+  function setupProtectionInfoUI() {
+    const settingsEl = document.getElementById('settings');
+    if (!settingsEl) return;
+    const inject = () => {
+      if (document.getElementById('protectionInfoPanel')) return;
+      const panel = document.createElement('div');
+      panel.id = 'protectionInfoPanel';
+      panel.className = 'panel';
+      panel.style.marginTop = '18px';
+      panel.innerHTML = `
+        <div class="section-head"><div><h2>App-Schutz</h2>
+        <p>Die App wird mit der Gerätesperre entsperrt — Face ID, Fingerabdruck oder Geräte-Code, je nachdem, was auf diesem Gerät eingerichtet ist. Nach 2 Minuten im Hintergrund wird erneut entsperrt.</p>
+        <p>Alle Daten liegen verschlüsselt auf diesem Gerät. Der Schlüssel dazu liegt im Schlüsselbund bzw. Keystore des Geräts und verlässt es nie. Für einen Gerätewechsel bitte „JSON exportieren" nutzen.</p>
+        </div></div>`;
+      settingsEl.appendChild(panel);
+    };
+    inject();
+    new MutationObserver(inject).observe(settingsEl, { childList: true });
+  }
+
+  // ============================================================================
+  // NATIVE APP: Gerätesperre + Schlüsselbund/Keystore
+  // ============================================================================
+  // Die beiden Capacitor-Plugins werden ohne Bundler direkt über die
+  // Native-Bridge angesprochen (Capacitor.nativePromise). Es gibt bewusst
+  // keinen Build-Schritt in diesem Projekt (siehe CLAUDE.md).
+  //   @aparajita/capacitor-biometric-auth  -> Plugin "BiometricAuthNative"
+  //   @aparajita/capacitor-secure-storage  -> Plugin "SecureStorage"
+  function nativeCall(plugin, method, options) {
+    return cap.nativePromise(plugin, method, options || {});
+  }
+  function nativePluginAvailable(name) {
+    if (Array.isArray(cap.PluginHeaders)) return cap.PluginHeaders.some(h => h && h.name === name);
+    return true; // ältere Bridge ohne Liste: beim Aufruf zeigt sich, ob es klappt
+  }
+  function nativePluginsAvailable() {
+    return typeof cap.nativePromise === 'function'
+      && nativePluginAvailable('BiometricAuthNative')
+      && nativePluginAvailable('SecureStorage');
+  }
+
+  async function secureGetMasterKey() {
+    const res = await nativeCall('SecureStorage', 'internalGetItem', { prefixedKey: MASTER_KEY_ITEM, sync: false });
+    return res && typeof res.data === 'string' && res.data ? res.data : null;
+  }
+  async function secureSetMasterKey(b64) {
+    await nativeCall('SecureStorage', 'internalSetItem', {
+      prefixedKey: MASTER_KEY_ITEM, data: b64, sync: false, access: KEYCHAIN_ACCESS_WHEN_UNLOCKED
+    });
+    // Sofort gegenlesen: Ein Schlüssel, der nicht wirklich gespeichert wurde,
+    // würde die Daten beim nächsten Start unlesbar machen.
+    const check = await secureGetMasterKey();
+    if (check !== b64) throw new Error('Schlüssel konnte nicht im Schlüsselbund abgelegt werden.');
+  }
+  async function secureRemoveMasterKey() {
+    try { await nativeCall('SecureStorage', 'internalRemoveItem', { prefixedKey: MASTER_KEY_ITEM, sync: false }); } catch { /* war nicht da */ }
+  }
+
+  let authInProgress = false;
+  function checkBiometry() {
+    return nativeCall('BiometricAuthNative', 'checkBiometry', {});
+  }
+  async function authenticateWithDevice() {
+    authInProgress = true;
+    try {
+      await nativeCall('BiometricAuthNative', 'internalAuthenticate', {
+        reason: 'FiaMed Pflege entsperren',
+        allowDeviceCredential: true,      // Face ID/Fingerabdruck zuerst, sonst Geräte-Code
+        cancelTitle: 'Abbrechen',
+        androidTitle: 'FiaMed Pflege entsperren',
+        androidSubtitle: 'Patientendaten sind geschützt',
+        androidConfirmationRequired: false
       });
-      toggle.dataset.showing = showing ? '0' : '1';
-      toggle.textContent = showing ? '👁 PIN anzeigen' : '🙈 PIN verbergen';
-    };
+    } finally {
+      authInProgress = false;
+    }
+  }
+  function describeAuthError(err) {
+    const code = err && err.code;
+    switch (code) {
+      case 'userCancel':
+      case 'appCancel':
+      case 'systemCancel':
+        return 'Entsperren wurde abgebrochen.';
+      case 'passcodeNotSet':
+      case 'noDeviceCredential':
+        return 'Auf diesem Gerät ist keine Gerätesperre eingerichtet (Code, Muster, Face ID oder Fingerabdruck). Bitte zuerst in den Geräteeinstellungen einrichten, dann erneut versuchen.';
+      case 'biometryLockout':
+        return 'Zu viele Fehlversuche. Bitte mit dem Geräte-Code entsperren oder kurz warten.';
+      case 'authenticationFailed':
+        return 'Entsperren fehlgeschlagen. Bitte erneut versuchen.';
+      default:
+        return 'Entsperren nicht möglich' + (err && err.message ? ': ' + err.message : '.');
+    }
   }
 
-  // ---- Screen: PIN einrichten (erster Start) ----
-  function showSetupScreen(existingPlaintextToMigrate) {
+  // Prüft, ob das Gerät überhaupt eine Sperre hat. Ohne Gerätesperre gäbe es
+  // nichts, womit die App geschützt werden könnte — dann lieber ehrlich stoppen.
+  async function ensureDeviceSecure(retry) {
+    let info;
+    try { info = await checkBiometry(); } catch (err) { showFatalScreen('Gerätesperre nicht prüfbar', describeAuthError(err), retry); return false; }
+    if (info && info.deviceIsSecure) return true;
     render(`
       <div class="lock-card">
-        <div class="lock-badge">✚</div>
-        <h1>PIN einrichten</h1>
-        <p>Schütze die App mit einer PIN (4–8 Ziffern). So bleiben die Daten geschützt, falls jemand das Gerät in die Hand nimmt.</p>
-        <form id="setupForm">
-          <label>Neue PIN<input type="password" inputmode="numeric" pattern="[0-9]*" id="pin1" autocomplete="off" required></label>
-          <label>PIN bestätigen<input type="password" inputmode="numeric" pattern="[0-9]*" id="pin2" autocomplete="off" required></label>
-          <button type="button" class="lock-link" id="pin1Toggle">👁 PIN anzeigen</button>
-          <p class="lock-error" id="setupError" hidden></p>
-          <button type="submit" class="lock-btn">Weiter</button>
-        </form>
+        <div class="lock-badge">🔒</div>
+        <h1>Gerätesperre fehlt</h1>
+        <p>FiaMed Pflege schützt Patientendaten mit der Sperre dieses Geräts. Bitte zuerst in den Geräteeinstellungen einen Code, ein Muster, Face ID oder einen Fingerabdruck einrichten — danach hier fortfahren.</p>
+        <button class="lock-btn" id="recheckBtn">Erneut prüfen</button>
       </div>
     `);
-    wirePinVisibilityToggle('pin1Toggle', ['pin1', 'pin2']);
-    document.getElementById('setupForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const pin1 = document.getElementById('pin1').value.trim();
-      const pin2 = document.getElementById('pin2').value.trim();
-      const err = document.getElementById('setupError');
-      if (!/^\d{4,8}$/.test(pin1)) { err.textContent = 'Die PIN muss aus 4 bis 8 Ziffern bestehen.'; err.hidden = false; return; }
-      if (pin1 !== pin2) { err.textContent = 'Die beiden PINs stimmen nicht überein.'; err.hidden = false; return; }
-      await setupPin(pin1, existingPlaintextToMigrate);
-    };
+    on('recheckBtn', retry);
+    return false;
   }
 
-  async function setupPin(pin, existingPlaintextToMigrate) {
-    render(`<div class="lock-card"><p>Einrichtung läuft …</p></div>`);
-
-    const masterKeyObj = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
-    const masterKeyBytes = new Uint8Array(await crypto.subtle.exportKey('raw', masterKeyObj));
-
-    const pinSalt = randomBytes(16);
-    const pinWrapKey = await deriveWrappingKey(pin, bytesToBase64(pinSalt), PIN_ITERATIONS);
-    const pinWrapped = await wrapMasterKey(pinWrapKey, masterKeyBytes);
-
-    const recoveryCode = makeRecoveryCode();
-    const recoverySalt = randomBytes(16);
-    const recoveryWrapKey = await deriveWrappingKey(normalizeRecoveryCode(recoveryCode), bytesToBase64(recoverySalt), RECOVERY_ITERATIONS);
-    const recoveryWrapped = await wrapMasterKey(recoveryWrapKey, masterKeyBytes);
-
-    const meta = {
-      v: 1,
-      pinSalt: bytesToBase64(pinSalt), pinIterations: PIN_ITERATIONS, pinWrapped,
-      recoverySalt: bytesToBase64(recoverySalt), recoveryIterations: RECOVERY_ITERATIONS, recoveryWrapped,
-      failedAttempts: 0, lockedUntil: 0
-    };
-    await saveLockMeta(meta);
-
-    masterKey = masterKeyObj;
-    cachedPlaintext = existingPlaintextToMigrate || null;
-    installShim();
-    if (existingPlaintextToMigrate) {
-      const envelope = await encryptState(masterKey, existingPlaintextToMigrate);
-      realSetItem(KEY, envelope);
-    }
-
-    showRecoveryCodeScreen(recoveryCode);
-  }
-
-  function showRecoveryCodeScreen(code) {
-    render(`
-      <div class="lock-card">
-        <div class="lock-badge">🔑</div>
-        <h1>Wiederherstellungscode</h1>
-        <p>Falls die PIN einmal vergessen wird, ist das der einzige Weg zurück zu den Daten — es gibt keine Cloud, die sie zurücksetzen kann. Aufschreiben und sicher aufbewahren (z. B. auf Papier).</p>
-        <div class="lock-code">${code}</div>
-        <label class="lock-check"><input type="checkbox" id="confirmSaved"> Ich habe den Code notiert und sicher aufbewahrt.</label>
-        <button class="lock-btn" id="continueBtn" disabled>Weiter zur App</button>
-      </div>
-    `);
-    const cb = document.getElementById('confirmSaved');
-    const btn = document.getElementById('continueBtn');
-    cb.onchange = () => { btn.disabled = !cb.checked; };
-    btn.onclick = () => bootApp();
-  }
-
-  // ---- Screen: PIN eingeben (jeder weitere Start) ----
-  function showUnlockScreen(meta) {
-    const waitMs = meta.lockedUntil - Date.now();
-    if (waitMs > 0) {
-      render(`<div class="lock-card"><h1>Kurz warten</h1><p>Zu viele falsche Versuche. Bitte in ${Math.ceil(waitMs / 1000)} Sekunden erneut versuchen.</p></div>`);
-      setTimeout(() => showUnlockScreen(meta), Math.min(waitMs, 3000));
-      return;
-    }
+  function showLockedScreen(message, retry) {
     render(`
       <div class="lock-card">
         <div class="lock-badge">✚</div>
         <h1>FiaMed Pflege</h1>
-        <p>Bitte PIN eingeben.</p>
+        <p>${escapeHtml(message)}</p>
+        <button class="lock-btn" id="unlockBtn">Entsperren</button>
+      </div>
+    `);
+    on('unlockBtn', retry);
+  }
+
+  async function startNative() {
+    if (!nativePluginsAvailable()) {
+      showFatalScreen('Sicherheitsmodul fehlt', 'Diese App-Version wurde ohne die Anbindung an Gerätesperre und Schlüsselbund gebaut. Bitte die App neu bauen (npm run sync, dann Android/iOS neu bauen).');
+      return;
+    }
+    let storedKey = null;
+    try {
+      storedKey = await secureGetMasterKey();
+    } catch (err) {
+      showFatalScreen('Schlüsselbund nicht erreichbar', 'Der Schlüssel zu den Daten konnte nicht gelesen werden' + (err && err.message ? ': ' + err.message : '.'), startNative);
+      return;
+    }
+    if (storedKey) { await unlockNativeWithStoredKey(storedKey); return; }
+
+    // Kein Schlüssel im Schlüsselbund: Erststart oder Installation aus der PIN-Zeit.
+    const meta = await loadLockMeta();
+    if (meta) { showLegacyPinScreen(meta, adoptKeyNative, 'native'); return; }
+    const raw = realGetItem(KEY);
+    if (raw && isEncryptedEnvelope(raw)) { showOrphanedDataScreen(); return; }
+    const legacyPlain = raw || realGetItem(LEGACY_KEY) || null;
+    showNativeSetupScreen(legacyPlain);
+  }
+
+  // Jeder weitere Start: Gerätesperre, dann Schlüssel aus dem Schlüsselbund verwenden.
+  async function unlockNativeWithStoredKey(storedKeyB64) {
+    showLockedScreen('Bitte mit Face ID, Fingerabdruck oder dem Geräte-Code entsperren.', () => unlockNativeWithStoredKey(storedKeyB64));
+    try {
+      await authenticateWithDevice();
+    } catch (err) {
+      showLockedScreen(describeAuthError(err), () => unlockNativeWithStoredKey(storedKeyB64));
+      return;
+    }
+    let keyObj;
+    try {
+      keyObj = await importMasterKey(base64ToBytes(storedKeyB64));
+    } catch {
+      showKeyMismatchScreen('Der im Schlüsselbund abgelegte Schlüssel ist beschädigt.');
+      return;
+    }
+    await openWithKey(keyObj);
+  }
+
+  // Erststart in der nativen App: Schlüssel erzeugen und im Schlüsselbund ablegen.
+  function showNativeSetupScreen(legacyPlaintext) {
+    render(`
+      <div class="lock-card">
+        <div class="lock-badge">✚</div>
+        <h1>Willkommen</h1>
+        <p>FiaMed Pflege wird mit der Sperre dieses Geräts geschützt — Face ID, Fingerabdruck oder Geräte-Code. Es gibt keine extra PIN, die man vergessen könnte.</p>
+        <p>Alle Daten bleiben verschlüsselt auf diesem Gerät. Der Schlüssel dazu liegt im Schlüsselbund des Geräts.</p>
+        <button class="lock-btn" id="setupBtn">Schutz einrichten</button>
+      </div>
+    `);
+    on('setupBtn', async () => {
+      if (!(await ensureDeviceSecure(() => showNativeSetupScreen(legacyPlaintext)))) return;
+      try {
+        await authenticateWithDevice();
+      } catch (err) {
+        showFatalScreen('Einrichtung abgebrochen', describeAuthError(err), () => showNativeSetupScreen(legacyPlaintext));
+        return;
+      }
+      render(`<div class="lock-card"><p>Einrichtung läuft …</p></div>`);
+      try {
+        const keyObj = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+        const rawBytes = new Uint8Array(await crypto.subtle.exportKey('raw', keyObj));
+        await secureSetMasterKey(bytesToBase64(rawBytes));
+        masterKey = keyObj;
+        cachedPlaintext = legacyPlaintext;
+        installShim();
+        if (legacyPlaintext) {
+          realSetItem(KEY, await encryptState(masterKey, legacyPlaintext));
+          realRemoveItem(LEGACY_KEY);
+        }
+        bootApp();
+      } catch (err) {
+        showFatalScreen('Einrichtung fehlgeschlagen', (err && err.message) || String(err), () => showNativeSetupScreen(legacyPlaintext));
+      }
+    });
+  }
+
+  // Umstellung einer Installation aus der PIN-Zeit: Die alte PIN (oder der
+  // Wiederherstellungscode) hat den Hauptschlüssel freigegeben. Ab jetzt wandert
+  // er in den Schlüsselbund, die PIN-Metadaten werden entfernt.
+  async function adoptKeyNative(keyObj) {
+    if (!(await ensureDeviceSecure(() => adoptKeyNative(keyObj)))) return;
+    render(`<div class="lock-card"><p>Umstellung läuft …</p></div>`);
+    let plaintext;
+    try {
+      plaintext = await readEncryptedData(keyObj);
+    } catch {
+      showKeyMismatchScreen('Die PIN war richtig, aber die gespeicherten Daten passen nicht zu diesem Schlüssel.');
+      return;
+    }
+    try {
+      const rawBytes = new Uint8Array(await crypto.subtle.exportKey('raw', keyObj));
+      await secureSetMasterKey(bytesToBase64(rawBytes));
+      await clearLockMeta();
+    } catch (err) {
+      showFatalScreen('Umstellung fehlgeschlagen', (err && err.message) || String(err), () => adoptKeyNative(keyObj));
+      return;
+    }
+    render(`
+      <div class="lock-card">
+        <div class="lock-badge">✅</div>
+        <h1>Umstellung abgeschlossen</h1>
+        <p>Die PIN wird nicht mehr gebraucht. Ab jetzt entsperrt sich FiaMed Pflege mit Face ID, Fingerabdruck oder dem Geräte-Code. Der Wiederherstellungscode kann vernichtet werden.</p>
+        <button class="lock-btn" id="continueBtn">Weiter zur App</button>
+      </div>
+    `);
+    on('continueBtn', () => {
+      masterKey = keyObj;
+      cachedPlaintext = plaintext;
+      installShim();
+      bootApp();
+    });
+  }
+
+  // Entschlüsselt den gespeicherten Datenblock — GETRENNT von der Frage, ob der
+  // Schlüssel selbst stimmt. Vorher landete ein Fehler hier im selben catch wie
+  // eine falsche PIN und erschien als "Falsche PIN", obwohl die PIN richtig war.
+  async function readEncryptedData(keyObj) {
+    const raw = realGetItem(KEY);
+    if (!raw) return null;
+    if (!isEncryptedEnvelope(raw)) return raw; // Klartext-Altbestand
+    return decryptState(keyObj, raw);
+  }
+
+  async function openWithKey(keyObj) {
+    let plaintext;
+    try {
+      plaintext = await readEncryptedData(keyObj);
+    } catch {
+      showKeyMismatchScreen('Das Entsperren hat geklappt, aber die gespeicherten Daten passen nicht zum Schlüssel im Schlüsselbund.');
+      return;
+    }
+    masterKey = keyObj;
+    cachedPlaintext = plaintext;
+    installShim();
+    if (plaintext !== null && !isEncryptedEnvelope(realGetItem(KEY))) {
+      // Klartext-Altbestand: ab jetzt verschlüsselt ablegen.
+      pendingPlaintext = plaintext;
+      flushPendingWrite();
+    }
+    bootApp();
+  }
+
+  // Nach längerer Zeit im Hintergrund erneut entsperren (die App bleibt dabei
+  // geladen, nur die Oberfläche wird verdeckt). Während die Gerätesperre selbst
+  // angezeigt wird, geht die WebView auf Android kurz in den Hintergrund — das
+  // darf nicht als "war lange weg" zählen (authInProgress).
+  let relockActive = false;
+  function installRelock() {
+    let hiddenSince = null;
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        if (!authInProgress && hiddenSince === null) hiddenSince = Date.now();
+        return;
+      }
+      const away = hiddenSince === null ? 0 : Date.now() - hiddenSince;
+      hiddenSince = null;
+      if (away >= RELOCK_AFTER_MS) relock();
+    });
+  }
+  async function relock() {
+    if (relockActive) return;
+    relockActive = true;
+    const attempt = async () => {
+      showLockedScreen('Bitte erneut mit Face ID, Fingerabdruck oder dem Geräte-Code entsperren.', attempt);
+      try {
+        await authenticateWithDevice();
+        relockActive = false;
+        hideOverlay();
+      } catch (err) {
+        showLockedScreen(describeAuthError(err), attempt);
+      }
+    };
+    await attempt();
+  }
+
+  // ============================================================================
+  // WEB-VERSION: kein Schutz, nur einmalige Umstellung alter PIN-Daten
+  // ============================================================================
+  async function startWeb() {
+    const meta = await loadLockMeta();
+    const raw = realGetItem(KEY);
+    const encrypted = !!raw && isEncryptedEnvelope(raw);
+    if (meta && encrypted) { showLegacyPinScreen(meta, migrateWebToPlaintext, 'web'); return; }
+    if (meta) await clearLockMeta();           // PIN eingerichtet, aber nichts Verschlüsseltes da: einfach weg damit
+    if (encrypted) { showOrphanedDataScreen(); return; }
+    bootApp();
+  }
+  async function migrateWebToPlaintext(keyObj) {
+    let plaintext;
+    try {
+      plaintext = await readEncryptedData(keyObj);
+    } catch {
+      showKeyMismatchScreen('Die PIN war richtig, aber die gespeicherten Daten passen nicht zu diesem Schlüssel.');
+      return;
+    }
+    if (plaintext !== null) realSetItem(KEY, plaintext);
+    await clearLockMeta();
+    bootApp();
+  }
+
+  // ============================================================================
+  // Gemeinsam: alte PIN-Eingabe (nur noch für die Umstellung), Fehler-Schirme, Reset
+  // ============================================================================
+  function showLegacyPinScreen(meta, onKey, mode) {
+    const waitMs = (meta.lockedUntil || 0) - Date.now();
+    if (waitMs > 0) {
+      render(`<div class="lock-card"><h1>Kurz warten</h1><p>Zu viele falsche Versuche. Bitte in ${Math.ceil(waitMs / 1000)} Sekunden erneut versuchen.</p></div>`);
+      setTimeout(() => showLegacyPinScreen(meta, onKey, mode), Math.min(waitMs, 3000));
+      return;
+    }
+    const intro = mode === 'web'
+      ? 'Die Web-Version wird nicht mehr durch eine PIN geschützt — sie dient nur noch zum Programmieren und Ausprobieren mit Testdaten. Damit die vorhandenen Daten weiter nutzbar sind, bitte die bisherige PIN ein letztes Mal eingeben. Danach liegen sie unverschlüsselt im Browser.'
+      : 'Die App entsperrt ab jetzt mit Face ID, Fingerabdruck oder dem Geräte-Code statt mit einer PIN. Für die Umstellung bitte die bisherige PIN ein letztes Mal eingeben.';
+    render(`
+      <div class="lock-card">
+        <div class="lock-badge">✚</div>
+        <h1>Bisherige PIN eingeben</h1>
+        <p>${intro}</p>
         <form id="unlockForm">
-          <!-- autocomplete: bewusst "one-time-code", NICHT "current-password" oder "off".
-               Henri meldete 26.08.2026 "Falsche PIN" auf seinem Mac nach Safari-Neustart:
-               Safari hatte einen alten Test-PIN im Schlüsselbund und füllte ihn unsichtbar
-               ein (man sieht ja nur Punkte). "off" reicht hier NICHT — Safari ignoriert das
-               bei type="password" bewusst, um Passwortmanager zu fördern. "one-time-code"
-               ordnet das Feld als Einmalcode ein, den Safari nicht aus dem Schlüsselbund
-               befüllt. Bitte nicht zurückändern. -->
+          <!-- autocomplete "one-time-code": Safari füllte sonst unsichtbar alte PINs aus dem Schlüsselbund ein (26.08.2026). -->
           <input type="password" inputmode="numeric" pattern="[0-9]*" id="pinInput" autocomplete="one-time-code" autofocus required>
           <p class="lock-error" id="unlockError" hidden></p>
-          <button type="submit" class="lock-btn">Entsperren</button>
+          <button type="submit" class="lock-btn">Weiter</button>
         </form>
-        <button type="button" class="lock-link" id="forgotBtn">PIN vergessen?</button>
+        <button type="button" class="lock-link" id="forgotBtn">PIN vergessen? Wiederherstellungscode verwenden</button>
+        <button type="button" class="lock-link" id="resetBtn">Ohne diese Daten neu beginnen</button>
       </div>
     `);
     document.getElementById('unlockForm').onsubmit = async (e) => {
       e.preventDefault();
       const pin = document.getElementById('pinInput').value.trim();
-      const ok = await tryUnlockWithPin(meta, pin);
-      if (!ok) {
-        const err = document.getElementById('unlockError');
+      const err = document.getElementById('unlockError');
+      err.hidden = true;
+      let keyObj;
+      try {
+        keyObj = await unwrapWithPin(meta, pin);
+      } catch {
         err.textContent = 'Falsche PIN.';
         err.hidden = false;
         document.getElementById('pinInput').value = '';
+        return;
       }
+      await onKey(keyObj);
     };
-    document.getElementById('forgotBtn').onclick = () => showRecoveryEntryScreen(meta);
+    on('forgotBtn', () => showRecoveryEntryScreen(meta, onKey, mode));
+    on('resetBtn', () => showResetScreen(() => showLegacyPinScreen(meta, onKey, mode)));
   }
 
-  async function tryUnlockWithPin(meta, pin) {
-    // Frisch laden statt dem beim Rendern übergebenen Objekt zu vertrauen: War die
-    // App in einem anderen Tab/Fenster zwischenzeitlich offen (z. B. PIN dort
-    // geändert), verhindert das, dass hier mit veralteten Metadaten verglichen
-    // oder später ein veralteter Stand zurückgeschrieben wird.
+  async function unwrapWithPin(meta, pin) {
     meta = (await loadLockMeta()) || meta;
     try {
       const wrapKey = await deriveWrappingKey(pin, meta.pinSalt, meta.pinIterations);
       const masterKeyBytes = await unwrapMasterKey(wrapKey, meta.pinWrapped);
-      const keyObj = await crypto.subtle.importKey('raw', masterKeyBytes, { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
-      await finishUnlock(keyObj, meta, true);
-      return true;
-    } catch {
+      if (meta.failedAttempts || meta.lockedUntil) {
+        meta.failedAttempts = 0;
+        meta.lockedUntil = 0;
+        await saveLockMeta(meta);
+      }
+      return await importMasterKey(masterKeyBytes);
+    } catch (err) {
       meta.failedAttempts = (meta.failedAttempts || 0) + 1;
       if (meta.failedAttempts >= MAX_FAILS_BEFORE_THROTTLE) {
         const extra = meta.failedAttempts - MAX_FAILS_BEFORE_THROTTLE;
         meta.lockedUntil = Date.now() + Math.min(30 * Math.pow(2, extra), 300) * 1000;
       }
       await saveLockMeta(meta);
-      return false;
+      throw err;
     }
   }
 
-  // ---- Screen: Wiederherstellungscode eingeben ----
-  function showRecoveryEntryScreen(meta) {
+  function showRecoveryEntryScreen(meta, onKey, mode) {
     render(`
       <div class="lock-card">
         <h1>Wiederherstellungscode</h1>
-        <p>Gib den Code ein, der bei der Einrichtung angezeigt wurde.</p>
+        <p>Bitte den Code eingeben, der bei der PIN-Einrichtung angezeigt wurde.</p>
         <form id="recoverForm">
           <input type="text" id="recoveryInput" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" autocomplete="off" required>
           <p class="lock-error" id="recoverError" hidden></p>
@@ -518,109 +714,107 @@
     document.getElementById('recoverForm').onsubmit = async (e) => {
       e.preventDefault();
       const code = normalizeRecoveryCode(document.getElementById('recoveryInput').value);
-      meta = (await loadLockMeta()) || meta; // s. Kommentar in tryUnlockWithPin
+      const current = (await loadLockMeta()) || meta;
+      let keyObj;
       try {
-        const wrapKey = await deriveWrappingKey(code, meta.recoverySalt, meta.recoveryIterations);
-        const masterKeyBytes = await unwrapMasterKey(wrapKey, meta.recoveryWrapped);
-        const keyObj = await crypto.subtle.importKey('raw', masterKeyBytes, { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
-        showSetNewPinScreen(keyObj, meta);
+        const wrapKey = await deriveWrappingKey(code, current.recoverySalt, current.recoveryIterations);
+        const masterKeyBytes = await unwrapMasterKey(wrapKey, current.recoveryWrapped);
+        keyObj = await importMasterKey(masterKeyBytes);
       } catch {
         const err = document.getElementById('recoverError');
         err.textContent = 'Der Code ist ungültig.';
         err.hidden = false;
+        return;
       }
+      await onKey(keyObj);
     };
-    document.getElementById('backBtn').onclick = () => showUnlockScreen(meta);
+    on('backBtn', () => showLegacyPinScreen(meta, onKey, mode));
   }
 
-  function showSetNewPinScreen(keyObj, meta) {
-    render(`
-      <div class="lock-card">
-        <h1>Neue PIN festlegen</h1>
-        <p>Der Code war richtig. Bitte jetzt eine neue PIN vergeben.</p>
-        <form id="newPinForm">
-          <label>Neue PIN<input type="password" inputmode="numeric" pattern="[0-9]*" id="newPin1" autocomplete="off" required></label>
-          <label>PIN bestätigen<input type="password" inputmode="numeric" pattern="[0-9]*" id="newPin2" autocomplete="off" required></label>
-          <button type="button" class="lock-link" id="newPinToggle">👁 PIN anzeigen</button>
-          <p class="lock-error" id="newPinError" hidden></p>
-          <button type="submit" class="lock-btn">Speichern</button>
-        </form>
-      </div>
-    `);
-    wirePinVisibilityToggle('newPinToggle', ['newPin1', 'newPin2']);
-    document.getElementById('newPinForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const p1 = document.getElementById('newPin1').value.trim();
-      const p2 = document.getElementById('newPin2').value.trim();
-      const err = document.getElementById('newPinError');
-      if (!/^\d{4,8}$/.test(p1)) { err.textContent = 'Die PIN muss aus 4 bis 8 Ziffern bestehen.'; err.hidden = false; return; }
-      if (p1 !== p2) { err.textContent = 'Die beiden PINs stimmen nicht überein.'; err.hidden = false; return; }
-
-      const masterKeyBytes = new Uint8Array(await crypto.subtle.exportKey('raw', keyObj));
-      const pinSalt = randomBytes(16);
-      const pinWrapKey = await deriveWrappingKey(p1, bytesToBase64(pinSalt), meta.pinIterations);
-      meta.pinSalt = bytesToBase64(pinSalt);
-      meta.pinWrapped = await wrapMasterKey(pinWrapKey, masterKeyBytes);
-      meta.failedAttempts = 0;
-      meta.lockedUntil = 0;
-      await saveLockMeta(meta);
-      await finishUnlock(keyObj, meta, false);
-    };
-  }
-
-  async function finishUnlock(keyObj, meta, resetThrottle) {
-    if (resetThrottle) {
-      meta.failedAttempts = 0;
-      meta.lockedUntil = 0;
-      await saveLockMeta(meta);
-    }
-    masterKey = keyObj;
-    const rawEnvelope = realGetItem(KEY);
-    cachedPlaintext = rawEnvelope ? await decryptState(masterKey, rawEnvelope) : null;
-    installShim();
-    bootApp();
-  }
-
-  // ---- Screen: Metadaten fehlen, verschlüsselte Daten sind aber noch da ----
-  // Kann passieren, wenn der Browser localStorage UND die IndexedDB-Sicherung
-  // geräumt hat (z. B. Safaris "Intelligent Tracking Prevention" nach langer
-  // Nichtbenutzung), während die verschlüsselten Daten selbst erhalten blieben.
-  // Ohne PIN-Salt und eingewickelten Schlüssel sind diese Daten unwiderruflich
-  // unlesbar — das lässt sich nicht reparieren, aber es lässt sich EHRLICH
-  // anzeigen, statt stillschweigend eine neue, leere PIN einzurichten und die
-  // alten Daten dabei unbemerkt für immer zu verwaisen.
+  // Verschlüsselte Daten vorhanden, aber weder Schlüssel noch PIN-Metadaten:
+  // Diese Daten sind unwiderruflich unlesbar — ehrlich anzeigen statt still neu anfangen.
   function showOrphanedDataScreen() {
     render(`
       <div class="lock-card">
         <div class="lock-badge">⚠️</div>
-        <h1>PIN-Information nicht gefunden</h1>
-        <p>Auf diesem Gerät liegen bereits verschlüsselte Daten, aber die dazugehörige PIN-Information fehlt — vermutlich hat der Browser sie gelöscht, z. B. nach längerer Nichtbenutzung.</p>
-        <p><b>Ohne die bisherige PIN oder den Wiederherstellungscode lassen sich diese Daten nicht mehr entschlüsseln — das ist technisch nicht möglich, nicht nur schwierig.</b></p>
-        <p>Falls die PIN oder der Code noch griffbereit sind: bitte jetzt nicht fortfahren, sondern zuerst Hilfe holen (Papa). Ein Neueinrichten hier macht die alten, jetzt unlesbaren Daten dauerhaft unerreichbar.</p>
-        <button class="lock-btn" id="acknowledgeOrphan">Verstanden — neu einrichten</button>
+        <h1>Schlüssel nicht gefunden</h1>
+        <p>Auf diesem Gerät liegen verschlüsselte Daten, aber der passende Schlüssel fehlt — z. B. nach einer wiederhergestellten Sicherung oder weil der Browser Daten gelöscht hat.</p>
+        <p><b>Ohne den Schlüssel lassen sich diese Daten nicht mehr entschlüsseln — das ist technisch nicht möglich, nicht nur schwierig.</b></p>
+        <p>Im Zweifel zuerst Hilfe holen (Papa). Ein Neubeginn macht die alten Daten dauerhaft unerreichbar.</p>
+        <button class="lock-btn" id="resetBtn">Neu beginnen</button>
       </div>
     `);
-    document.getElementById('acknowledgeOrphan').onclick = () => showSetupScreen(null);
+    on('resetBtn', () => showResetScreen(showOrphanedDataScreen));
+  }
+
+  function showKeyMismatchScreen(detail) {
+    render(`
+      <div class="lock-card">
+        <div class="lock-badge">⚠️</div>
+        <h1>Daten passen nicht zum Schlüssel</h1>
+        <p>${escapeHtml(detail)}</p>
+        <p>Das passiert, wenn Daten aus einer anderen Einrichtung zurückgespielt wurden (z. B. durch eine Sicherung des Betriebssystems). Sie lassen sich mit diesem Schlüssel nicht lesen.</p>
+        <p>Im Zweifel zuerst Hilfe holen (Papa). Ein Neubeginn löscht die alten Daten dauerhaft.</p>
+        <button class="lock-btn" id="resetBtn">Neu beginnen</button>
+      </div>
+    `);
+    on('resetBtn', () => showResetScreen(() => showKeyMismatchScreen(detail)));
+  }
+
+  function showFatalScreen(title, message, retry) {
+    render(`
+      <div class="lock-card">
+        <div class="lock-badge">⚠️</div>
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(message)}</p>
+        ${retry ? '<button class="lock-btn" id="retryBtn">Erneut versuchen</button>' : ''}
+      </div>
+    `);
+    if (retry) on('retryBtn', retry);
+  }
+
+  // Regel 6 (CLAUDE.md): Löschen nur nach ausdrücklicher Bestätigung.
+  function showResetScreen(back) {
+    render(`
+      <div class="lock-card">
+        <div class="lock-badge">🗑️</div>
+        <h1>Alles löschen und neu beginnen?</h1>
+        <p>Dabei werden alle Patienten, Touren, Berichte und Einstellungen auf diesem Gerät dauerhaft gelöscht. Das lässt sich nicht rückgängig machen.</p>
+        <label class="lock-check"><input type="checkbox" id="confirmReset"> Ich verstehe, dass die Daten unwiederbringlich gelöscht werden.</label>
+        <div class="lock-stack">
+          <button class="lock-btn danger" id="resetConfirmBtn" disabled>Alles löschen</button>
+          <button class="lock-btn secondary" id="resetBackBtn">Zurück</button>
+        </div>
+      </div>
+    `);
+    const cb = document.getElementById('confirmReset');
+    const btn = document.getElementById('resetConfirmBtn');
+    cb.onchange = () => { btn.disabled = !cb.checked; };
+    btn.onclick = resetEverything;
+    on('resetBackBtn', back);
+  }
+  async function resetEverything() {
+    render(`<div class="lock-card"><p>Wird gelöscht …</p></div>`);
+    realRemoveItem(KEY);
+    realRemoveItem(LEGACY_KEY);
+    await clearLockMeta();
+    if (isNative) await secureRemoveMasterKey();
+    location.reload();
   }
 
   // ---------- Start ----------
   async function start() {
-    const meta = await loadLockMeta();
-    if (meta) {
-      showUnlockScreen(meta);
-      return;
+    // Aufräumen: Die alte Weiche hat in WebKit Einträge "getItem"/"setItem"
+    // (mit Funktionstext) im localStorage hinterlassen — siehe installShim().
+    realRemoveItem('getItem');
+    realRemoveItem('setItem');
+    try {
+      if (isNative) await startNative();
+      else await startWeb();
+    } catch (err) {
+      console.error('lock.js: Start fehlgeschlagen', err);
+      showFatalScreen('Start fehlgeschlagen', (err && err.message) || String(err), () => location.reload());
     }
-    const raw = realGetItem(KEY) || realGetItem(LEGACY_KEY);
-    if (raw && isEncryptedEnvelope(raw)) {
-      // Keine Metadaten, aber schon verschlüsselte Daten vorhanden: NICHT als
-      // "noch nie eingerichtet" behandeln, siehe showOrphanedDataScreen().
-      showOrphanedDataScreen();
-      return;
-    }
-    // Wirklich noch keine PIN eingerichtet: prüfen, ob schon (unverschlüsselte)
-    // Altdaten vorhanden sind, damit sie bei der Einrichtung mit übernommen werden.
-    const existingPlaintext = (raw && !isEncryptedEnvelope(raw)) ? raw : null;
-    showSetupScreen(existingPlaintext);
   }
 
   start();
