@@ -42,14 +42,20 @@ ist jetzt öffentlich**, siehe Warnung oben in `CLAUDE.md`.
 
 ## Stufe 1 · Fundament ohne Server (ein Wochenende)
 
-- [x] ~~**App-Sperre beim Öffnen** (PIN).~~ **Live seit 22.08.2026** (Commits `e662504`,
-      `838ffa4`, `2e50f14`, gemergt auf `main`). PIN 4–8 Ziffern, „PIN ändern" in den
-      Einstellungen, einmaliger Wiederherstellungscode statt Mail-Reset. **Face-ID folgt
-      über die Capacitor-Hülle** (native Secure-Storage ist zuverlässiger als der Browser-
-      WebAuthn-Umweg für eine reine PWA), noch offen.
+- [x] ~~**App-Sperre beim Öffnen** (PIN).~~ **Live seit 22.08.2026**, **am 02.09.2026
+      ersetzt durch die Gerätesperre** (Face ID / Fingerabdruck / Geräte-Code über
+      `@aparajita/capacitor-biometric-auth`) in der nativen App. Keine eigene PIN mehr, kein
+      Wiederherstellungscode mehr — das Geheimnis ist die Gerätesperre. Web-Version seitdem
+      ohne Schutz (nur noch Entwicklung mit Testdaten). Alte PIN-Installationen werden beim
+      ersten Start einmalig umgestellt.
 - [x] ~~**Lokale Daten verschlüsseln** (WebCrypto, Schlüssel aus der PIN abgeleitet).~~
-      **Live seit 22.08.2026** — `localStorage['fiamed-pflege-v2']` liegt nur noch als
-      AES-256-GCM-Chiffrat vor.
+      **Live seit 22.08.2026** — `localStorage['fiamed-pflege-v2']` liegt als AES-256-GCM-
+      Chiffrat vor. **Seit 02.09.2026** liegt der Hauptschlüssel im iOS-Schlüsselbund bzw.
+      Android-Keystore (`@aparajita/capacitor-secure-storage`) statt PIN-abgeleitet.
+      ⚠️ **Bis 02.09.2026 war die Verschlüsselung in WebKit (iOS-App, iPhone-/Mac-Safari)
+      unwirksam:** `localStorage.getItem = …` überschreibt dort die Methode nicht, sondern
+      legt einen Speicher-Eintrag an; die Daten lagen im Klartext. Behoben (Weiche jetzt auf
+      `Storage.prototype`), im Simulator per SQLite-Auslese nachgewiesen.
 - [x] ~~**`FiaMed-Pflege.html`-Einzeldatei** — konnte strukturell nicht denselben PIN-Schutz
       bekommen (alles inline, kein trennbares „Zimmer").~~ **Gelöscht 22.08.2026** — statt
       Warnhinweis einfach entfernt (Quelle + Release), da ohnehin nicht mehr empfohlen.
@@ -84,10 +90,12 @@ ist jetzt öffentlich**, siehe Warnung oben in `CLAUDE.md`.
       Wundfotos aber nicht mehr**: Bilder lägen dann im Zustand *und* in jedem der zwölf
       Schnappschüsse. Vor dem Foto-Feature entschärfen (weniger Schnappschüsse oder Fotos
       davon ausnehmen).
-- [ ] **Bug gemeldet 26.08.2026 (Henri): „Falsche PIN" auf seinem Mac, obwohl der Code
-      stimmt — nur nach komplettem Schließen von Safari, nur auf seinem Gerät, nicht bei der
-      Tante.** Noch nicht behoben, nur untersucht (Henris Claude, ohne `lock.js` selbst
-      anzufassen). Verdacht: Das Entsperren-Feld (`#pinInput`, Zeile ~453) und das Feld
+- [x] **Bug gemeldet 26.08.2026 (Henri): „Falsche PIN" auf seinem Mac, obwohl der Code
+      stimmt — nur nach komplettem Schließen von Safari.** **Am 02.09.2026 mit hoher
+      Wahrscheinlichkeit als WebKit-Weichen-Bug erkannt und behoben** (siehe „Lokale Daten
+      verschlüsseln" oben: Daten lagen im Klartext, „Entschlüsseln" des Klartexts scheiterte
+      und wurde als „Falsche PIN" gemeldet — dasselbe Bild wie bei den Handy-Apps). Die
+      ursprüngliche Autofill-Vermutung bleibt hier als Historie stehen. Verdacht damals: Das Entsperren-Feld (`#pinInput`, Zeile ~453) und das Feld
       „Aktuelle PIN" beim PIN-Ändern haben `autocomplete="current-password"` — das lädt
       Safaris Passwort-Autofill/Schlüsselbund für ein Feld ein, das gar kein Website-Login
       ist, sondern eine reine Ziffern-PIN. Vermutung: Ein beim Testen mal geänderter Code

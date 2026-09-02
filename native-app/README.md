@@ -31,6 +31,68 @@ npm run build:android-debug   # neue Android-Test-APK
 
 ---
 
+## App-Schutz: Gerätesperre statt PIN (seit 02.09.2026)
+
+Die native App entsperrt sich mit **Face ID, Fingerabdruck oder Geräte-Code** — keine eigene
+PIN, kein Wiederherstellungscode mehr. Die Daten liegen weiterhin AES-256-GCM-verschlüsselt im
+WebView-Speicher; der Hauptschlüssel liegt im **iOS-Schlüsselbund** bzw. **Android-Keystore**.
+Nach 2 Minuten im Hintergrund wird erneut entsperrt. Ohne eingerichtete Gerätesperre startet
+die App nicht (sie bittet, erst eine einzurichten).
+
+- **Plugins:** `@aparajita/capacitor-biometric-auth` (Gerätesperre) und
+  `@aparajita/capacitor-secure-storage` (Schlüsselbund/Keystore), dazu `@capacitor/app` und
+  `@capacitor/keyboard` als deren Abhängigkeiten. `lock.js` spricht sie **ohne Bundler**
+  direkt über `Capacitor.nativePromise('SecureStorage' | 'BiometricAuthNative', …)` an —
+  es gibt weiterhin keinen Build-Schritt für die Web-App.
+- **`capacitor.config.json` hat `"loggingBehavior": "none"`** — sonst schreibt Capacitor in
+  Debug-Builds jeden Plugin-Aufruf samt Parametern ins Log, darunter den Hauptschlüssel.
+- **Android-Manifest:** `android:allowBackup="false"` (sonst spielt Android bei einer
+  Neuinstallation alte WebView-Daten zurück, zu denen der Keystore-Schlüssel nicht mehr
+  passt) und `USE_BIOMETRIC`-Berechtigung.
+- **iOS-`Info.plist`:** `NSFaceIDUsageDescription` (Pflicht, sonst verweigert iOS Face ID).
+- **Gerätewechsel:** Der Keystore-Schlüssel (Android) wandert nie mit; der iOS-Schlüsselbund-
+  Eintrag nur bei verschlüsselten Backups. Verlässlicher Weg: in der App „JSON exportieren",
+  auf dem neuen Gerät importieren.
+- **Alte Installationen aus der PIN-Zeit** werden beim ersten Start einmalig umgestellt
+  (alte PIN oder Wiederherstellungscode ein letztes Mal eingeben). Dabei wurde die eigentliche
+  Ursache des früheren „PIN funktioniert nach Neustart nicht"-Problems gefunden: In WebKit lag
+  der Speicher trotz aktivierter Verschlüsselung im **Klartext** (Details: Kommentar über
+  `installShim()` in `lock.js` und `CLAUDE.md`). Behoben.
+
+### Getestet am 02.09.2026
+
+| Ablauf | iPhone-17-Pro-Simulator (Face ID simuliert) | Pixel-9-Pro-Emulator (Geräte-PIN, kein Fingerabdruck) |
+|---|---|---|
+| Erststart: „Schutz einrichten" → Gerätesperre → App | ✅ | ✅ |
+| Daten verschlüsselt im Speicher (per SQLite/LevelDB nachgesehen, kein Klartext) | ✅ | ✅ |
+| App beenden → Neustart → Gerätesperre → Daten wieder da | ✅ | ✅ |
+| Abbruch/„Gesicht nicht erkannt" → eigener Schirm mit „Entsperren" | ✅ | – |
+| Umstellung einer PIN-Installation (Klartextdaten + PIN-Metadaten) | ✅ | – |
+
+**Face ID im Simulator steuern** (Xcode-Menü „Features → Face ID" oder per Terminal):
+
+```bash
+xcrun simctl spawn booted notifyutil -s com.apple.BiometricKit.enrollmentChanged 1 && xcrun simctl spawn booted notifyutil -p com.apple.BiometricKit.enrollmentChanged   # Face ID „einrichten"
+xcrun simctl spawn booted notifyutil -p com.apple.BiometricKit_Sim.pearl.match     # Gesicht erkannt
+xcrun simctl spawn booted notifyutil -p com.apple.BiometricKit_Sim.pearl.nomatch   # nicht erkannt
+```
+
+**Android-Emulator ohne Fingerabdruck:** `adb shell locksettings set-pin 1234` setzt eine
+Gerätesperre; die App fällt dann automatisch auf die PIN-Abfrage des Systems zurück
+(`adb shell input text 1234` + `adb shell input keyevent 66`). Screenshots der Sperr-Abfrage
+sind schwarz — Android blendet sichere Dialoge aus, das ist kein Fehler.
+
+### Zwei Build-Fallen, beide am 02.09.2026 erlebt
+
+- **Android: „SDK location not found"** — `android/local.properties` ist gitignored und fehlt
+  in frischen Klonen/Worktrees. Anlegen mit `sdk.dir=/Users/<name>/Library/Android/sdk`.
+- **iOS: „resource fork, Finder information, or similar detritus not allowed" beim CodeSign** —
+  macOS hängt an neu geschriebene Dateien ein `com.apple.provenance`-Attribut, das Xcode beim
+  Signieren ablehnt. Abhilfe: `xattr -cr ../Claude-Uebergabe/FiaMed-Pflege-App ios/App/App/public`
+  und ggf. `xattr -cr <DerivedData>/…/App.app`, dann neu bauen.
+
+---
+
 ## Android
 
 ### Kein Play Store nötig
@@ -55,7 +117,8 @@ erlauben", Android fragt automatisch danach).
 
 ### Auf einem echten Emulator bestätigt (02.09.2026)
 
-- PIN einrichten funktioniert (WebCrypto/PBKDF2/AES-GCM aus `lock.js` läuft im Android-WebView)
+- PIN einrichten funktionierte (WebCrypto/PBKDF2/AES-GCM aus `lock.js` läuft im Android-WebView) —
+  **seit 02.09.2026 ersetzt durch die Gerätesperre**, siehe Abschnitt „App-Schutz" oben
 - `tel:` (Anrufen), `mailto:` („Fehler melden") und Teilen (`navigator.share()` bzw.
   Zwischenablage-Fallback) wurden alle im Emulator ausprobiert und funktionieren
 
@@ -151,10 +214,11 @@ bewusstes Ja von Papa wegen der laufenden Kosten.
 ### Auf dem iPhone-17-Pro-Simulator bestätigt (02.09.2026)
 
 - Build erfolgreich: `xcodebuild -scheme App -sdk iphonesimulator` läuft fehlerfrei durch
-- PIN einrichten, Wiederherstellungscode, Entsperren funktionieren (WebCrypto/PBKDF2/AES-GCM
-  aus `lock.js` läuft im iOS-WebView genauso wie im Android-WebView)
-- Daten überleben einen kompletten Neustart der App (PIN musste beim zweiten Start korrekt
-  erneut eingegeben werden statt neu eingerichtet zu werden)
+- PIN einrichten, Wiederherstellungscode, Entsperren funktionierten (WebCrypto/PBKDF2/AES-GCM
+  aus `lock.js` läuft im iOS-WebView genauso wie im Android-WebView) — **seit 02.09.2026
+  ersetzt durch die Gerätesperre**, siehe Abschnitt „App-Schutz" oben. Der damalige Test
+  „Daten überleben einen Neustart" war nur deshalb grün, weil die Daten im Klartext lagen
+  (WebKit-Weichen-Bug, inzwischen behoben).
 - `tel:`/`mailto:`-Verhalten **im Quellcode bestätigt statt live getestet**: Capacitors iOS-
   Bridge (`WebViewDelegationHandler.swift`) öffnet jede App-fremde URL über
   `UIApplication.shared.open(...)` — exakt derselbe Mechanismus wie Androids

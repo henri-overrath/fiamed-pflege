@@ -91,3 +91,8 @@
   margin-bottom: 18px;
 }
 .lock-check input { width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px; }
+.lock-card > .lock-btn { width: 100%; }
+.lock-stack { display: flex; flex-direction: column; gap: 10px; }
+.lock-btn.secondary { background: var(--blue-soft, #eaf1ff); color: var(--blue, #2b6df3); }
+.lock-btn.danger { background: var(--red, #ed5565); }
+.lock-card label.lock-check { flex-direction: row; }

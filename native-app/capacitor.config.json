@@ -1,5 +1,7 @@
 {
   "appId": "de.overrath.fiamedpflege",
   "appName": "FiaMed Pflege",
-  "webDir": "../Claude-Uebergabe/FiaMed-Pflege-App"
+  "webDir": "../Claude-Uebergabe/FiaMed-Pflege-App",
+  "loggingBehavior": "none",
+  "_kommentar": "loggingBehavior none: Capacitor wuerde sonst in Debug-Builds jeden Plugin-Aufruf inkl. Parametern ins Logcat/Xcode-Log schreiben - darunter der Hauptschluessel aus dem Schluesselbund (SecureStorage.internalSetItem). Bitte so lassen."
 }
