@@ -198,9 +198,27 @@ Zwei echte Optionen, **das ist eine Entscheidung, die nur Papa treffen kann** (K
    über die TestFlight-App. Jede neue Version einmal hochladen, alle Tester bekommen automatisch
    eine Update-Benachrichtigung — deutlich komfortabler als bei Android sogar.
 
-**Empfehlung:** Falls die App wirklich bei der Tante im Alltag ankommen soll und sie ein
-iPhone hat, führt an Option 2 kaum ein Weg vorbei. Noch nicht eingerichtet — braucht ein
-bewusstes Ja von Papa wegen der laufenden Kosten.
+**Entschieden: Option 2 ist eingerichtet (Team `57UBBJP9ZC`, seit 02.09.2026), die App
+wird über TestFlight genutzt.** Neue Version hochladen geht komplett per Terminal (Xcode muss
+mit der Apple-ID angemeldet sein, `-allowProvisioningUpdates` erledigt Zertifikate/Profile):
+
+```bash
+cd native-app && npm run sync
+cd ios/App
+# 1. Version hochzählen: MARKETING_VERSION (z. B. 1.1) und CURRENT_PROJECT_VERSION (Build, z. B. 2)
+#    in App.xcodeproj/project.pbxproj - beide Vorkommen (Debug + Release).
+# 2. Archiv bauen
+xcodebuild -scheme App -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+  -archivePath build/FiaMedPflege.xcarchive archive -allowProvisioningUpdates
+# 3. Exportieren + hochladen (ExportOptions.plist: method app-store-connect, destination upload,
+#    signingStyle automatic, teamID 57UBBJP9ZC - liegt nicht im Repo, weil build/ ignoriert ist)
+xcodebuild -exportArchive -archivePath build/FiaMedPflege.xcarchive -exportPath build/upload \
+  -exportOptionsPlist build/ExportOptions.plist -allowProvisioningUpdates
+```
+
+Danach in App Store Connect → TestFlight erscheint der Build nach wenigen Minuten
+(„Processing"), die Tester bekommen automatisch die Update-Benachrichtigung. Beim CodeSign-
+Fehler „detritus not allowed" siehe „Zwei Build-Fallen" oben.
 
 ### Voraussetzungen auf diesem Rechner
 
