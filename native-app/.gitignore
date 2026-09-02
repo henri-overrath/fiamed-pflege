@@ -1,0 +1,34 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Android / Gradle Build-Ausgaben (werden immer neu erzeugt, nicht versioniert)
+android/build/
+android/app/build/
+android/capacitor-cordova-android-plugins/build/
+android/.gradle/
+android/local.properties
+android/*.iml
+android/.idea/
+*.apk
+*.aab
+
+
+# assets/icon.png bleibt im Repo (Quelle fuer "npm run icons" / npx capacitor-assets).
+# Generierte Icon-/Splash-PNGs unter android/app/src/main/res/ bleiben ebenfalls im
+# Repo - das sind Quelldateien fuer Gradle, kein Build-Output.
+
+# Signierschlüssel - darf NIEMALS ins Repo, sonst könnte jeder gefälschte
+# "Updates" signieren, die Android als vertrauenswürdig einstuft.
+android/keystore/
+android/keystore.properties
+
+# iOS Build-Ausgaben (werden immer neu erzeugt, nicht versioniert)
+ios/App/build/
+ios/App/DerivedData/
+ios/App/Pods/
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/xcuserdata/
+ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
+*.ipa
+*.xcarchive
