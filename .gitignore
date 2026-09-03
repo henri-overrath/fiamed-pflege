@@ -9,3 +9,11 @@
 
 # temporäre Dateien
 *.tmp
+
+# Android-Signierschlüssel (Repo ist öffentlich!)
+# Bislang nur über .git/info/exclude ausgenommen - das gilt aber NUR lokal auf
+# einem Rechner und wird nie mitgepusht. In einem frischen Klon fehlte der
+# Schutz dadurch komplett. Deshalb hier, damit die Regel mitwandert.
+Signierungsschlüssel Android/
+*.jks
+keystore.properties

@@ -142,6 +142,41 @@ müssen vorhanden sein (beide bewusst NICHT im Git-Repo, siehe `.gitignore` — 
 öffentlich). Ohne die beiden Dateien bricht `assembleRelease` mit einer klaren Fehlermeldung
 ab; ein Debug-Build funktioniert davon unabhängig immer.
 
+#### 📍 Wo der Schlüssel auf Papas Mac liegt
+
+Im Ordner **`Signierungsschlüssel Android/`** direkt im Projektordner (neben `native-app/`
+und `Claude-Uebergabe/`). Er wird von Git ignoriert und ist nie im Repo gelandet.
+
+Vor einem Release-Build die beiden Dateien an ihren Platz kopieren, danach wieder entfernen:
+
+```bash
+cd native-app/android
+mkdir -p keystore
+cp "../../Signierungsschlüssel Android/keystore.properties" keystore.properties
+cp "../../Signierungsschlüssel Android/fiamed-release.jks"  keystore/fiamed-release.jks
+# ... assembleRelease ausführen ...
+rm -rf keystore.properties keystore          # danach wieder wegräumen
+```
+
+**In einem frischen Klon oder Worktree fehlen sie** — dort erst kopieren, sonst wirkt es so,
+als wäre der Schlüssel verloren. Genau diese Verwechslung ist am 03.09.2026 passiert.
+
+#### ✅ Nach jedem Release-Build prüfen: gleiche Signatur wie vorher?
+
+Android installiert eine neue APK nur dann über eine bestehende, wenn beide mit demselben
+Schlüssel signiert sind. Passt es nicht, hilft nur Deinstallieren — und alle Daten der Tante
+sind weg. Deshalb vor dem Verteilen die alte Release-APK herunterladen und vergleichen:
+
+```bash
+gh release download android-v1.2 --dir /tmp/alt     # zuletzt verteilte Version
+APKSIGNER=$(ls ~/Library/Android/sdk/build-tools/*/apksigner | tail -1)
+"$APKSIGNER" verify --print-certs /tmp/alt/*.apk | grep "SHA-256 digest"
+"$APKSIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk | grep "SHA-256 digest"
+```
+
+Die beiden Fingerabdrücke müssen identisch sein. Zusätzlich muss `versionCode` größer sein als
+bei der Vorversion (`aapt2 dump badging <apk> | head -1` zeigt ihn an).
+
 #### ⚠️ Diese beiden Dateien unbedingt sichern (z. B. Passwort-Manager + externe Sicherung)
 
 **Ohne sie kann kein künftiges Update mehr signiert werden.** Android erkennt eine neue APK
