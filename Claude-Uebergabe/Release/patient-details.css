@@ -23,3 +23,33 @@
 .back-pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--blue-soft);color:var(--blue);border-radius:999px;padding:8px 14px;font:600 13px inherit;cursor:pointer;margin-bottom:14px}
 .back-pill:hover{filter:brightness(.97)}
 @media(max-width:760px){.custom-row{grid-template-columns:1fr}}
+
+/* Wundfotos */
+.section-title{display:flex;align-items:center;justify-content:space-between;margin-top:22px;margin-bottom:4px}
+.section-title h3{font-size:14px;margin:0;font-weight:800;letter-spacing:.01em}
+.tip-box{font-size:12px;color:var(--muted);background:var(--bg);border:1px dashed var(--line);border-radius:10px;padding:8px 10px;margin-top:8px;line-height:1.4}
+.add-photo{margin-top:12px;width:100%;border:1.5px dashed var(--blue);background:var(--blue-soft);color:var(--blue);border-radius:13px;padding:14px;font:700 14px inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.add-photo:hover{filter:brightness(.98)}
+.wound-actions{display:none;gap:8px;margin-top:10px}
+.photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.photo-card{border-radius:13px;overflow:hidden;background:var(--bg);border:1px solid var(--line);cursor:pointer;transition:.15s}
+.photo-card:hover{border-color:var(--blue)}
+.photo-thumb-wrap{position:relative;aspect-ratio:4/3;background:#000}
+.photo-thumb-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-check{position:absolute;top:7px;left:7px;width:20px;height:20px;accent-color:var(--blue);display:none}
+.photo-grid.selecting .photo-check{display:block}
+.photo-flag{position:absolute;top:6px;right:6px;background:var(--red);color:#fff;border-radius:8px;padding:2px 6px;font-size:12px;line-height:1.4}
+.photo-meta{padding:8px 10px}
+.photo-meta b{display:block;font-size:11.5px}
+.photo-meta small{color:var(--muted);font-size:11px;display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.lightbox{position:fixed;inset:0;background:rgba(10,16,30,.72);display:none;align-items:center;justify-content:center;padding:24px;z-index:50}
+.lightbox.open{display:flex}
+.lightbox-card{background:var(--card);border-radius:18px;max-width:360px;width:100%;overflow:hidden;box-shadow:var(--shadow);max-height:90vh;display:flex;flex-direction:column}
+.lightbox-photo{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#000}
+.lightbox-body{padding:16px;overflow-y:auto}
+.lightbox-body>label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px}
+.lightbox-body textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;background:var(--bg);color:var(--ink);resize:vertical;min-height:50px}
+.severe-check{display:flex!important;align-items:center;gap:8px;font-size:13px;font-weight:600!important;color:var(--ink)!important;margin:12px 0 0!important;cursor:pointer}
+.severe-check input{width:18px;height:18px;accent-color:var(--red)}
+.lightbox-actions{display:flex;justify-content:space-between;gap:8px;margin-top:14px}
