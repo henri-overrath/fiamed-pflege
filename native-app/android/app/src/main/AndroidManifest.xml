@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- android:allowBackup unten ist bewusst false, nicht nur Voreinstellung: Der
+         Wundfoto-Speicher (IndexedDB, siehe lock.js) und der übrige App-Zustand liegen
+         ausschließlich lokal verschlüsselt auf dem Gerät (CLAUDE.md Regel 2).
+         allowBackup="false" schließt sowohl das klassische Google-Cloud-Backup als auch
+         die Geräte-zu-Geräte-Migration beim Einrichten eines neuen Telefons aus - ohne
+         das würden Gesundheitsdaten unbemerkt auf Google-Server bzw. ein anderes Gerät
+         wandern, was der ganzen "kein Server"-Architektur widerspricht (siehe MARKT.md).
+         Bitte nicht auf true ändern, auch nicht für Debug-Zwecke. -->
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
