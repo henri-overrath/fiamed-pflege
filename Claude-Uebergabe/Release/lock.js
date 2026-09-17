@@ -125,6 +125,99 @@
     } catch { return false; }
   }
 
+  // ---------- Foto-Speicher (IndexedDB) ----------
+  // localStorage[KEY] hat nur 5-10 MB Platz - für Wundfotos (mehrere hundert KB
+  // pro Foto) reicht das nicht, sobald mehr als eine Handvoll zusammenkommen.
+  // IndexedDB hat ein deutlich größeres Kontingent (typischerweise hunderte MB
+  // bis in den GB-Bereich, je nach freiem Gerätespeicher) und ist reiner
+  // Web-Standard - kein zusätzliches Capacitor-Plugin nötig.
+  //
+  // app.js legt hier nur noch die Bild-Bytes ab (als Data-URL-String), unter der
+  // vom Foto selbst vergebenen id; im Zustand (state.patients[].woundPhotos)
+  // bleiben nur noch Metadaten {id,at,note,severe} übrig - die einzigen Teile,
+  // die weiterhin bei jedem save() mitkopiert werden.
+  //
+  // Nativ wird jedes Foto genauso mit dem Hauptschlüssel aus dem
+  // Schlüsselbund/Keystore verschlüsselt (AES-256-GCM, dieselben
+  // encryptState/decryptState-Funktionen wie für den übrigen Zustand) - die in
+  // CLAUDE.md dokumentierte Zusage "alles in state ist automatisch
+  // verschlüsselt" gilt für Fotos unverändert weiter, auch wenn sie jetzt in
+  // einem eigenen Speicher liegen. In der Web-Version (kein Schutz, siehe oben)
+  // liegen sie unverschlüsselt, wie der Rest des Zustands auch.
+  //
+  // ⚠️ Auf einem echten Gerät noch zu prüfen (hier nur im Browser getestet,
+  // nicht auf einem iPhone/Android-Gerät): iCloud- bzw. Google-Auto-Backup
+  // können App-Daten inklusive IndexedDB unbemerkt auf Apple-/Google-Server
+  // kopieren, wenn der Speicherort nicht explizit davon ausgeschlossen wird.
+  // Das wäre eine unkontrollierte Übermittlung, die der ganzen "kein
+  // Server"-Architektur widerspricht - siehe MARKT.md. Ausschluss muss auf
+  // nativer Seite (iOS/Android-Projekteinstellungen) ergänzt und auf einem
+  // echten Gerät verifiziert werden, bevor das veröffentlicht wird.
+  const PHOTO_DB_NAME = 'fiamed-pflege-photos';
+  const PHOTO_STORE = 'photos';
+  function openPhotoDb() {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) { reject(new Error('IndexedDB nicht verfügbar')); return; }
+      const req = indexedDB.open(PHOTO_DB_NAME, 1);
+      req.onupgradeneeded = () => { req.result.createObjectStore(PHOTO_STORE); };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function photoDbPut(id, value) {
+    const db = await openPhotoDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(PHOTO_STORE, 'readwrite');
+      tx.objectStore(PHOTO_STORE).put(value, id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function photoDbGet(id) {
+    const db = await openPhotoDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(PHOTO_STORE, 'readonly');
+      const req = tx.objectStore(PHOTO_STORE).get(id);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function photoDbDelete(id) {
+    const db = await openPhotoDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(PHOTO_STORE, 'readwrite');
+      tx.objectStore(PHOTO_STORE).delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  // Nativ: harter Fehler, wenn noch kein Schlüssel da ist - sonst würde ein Foto
+  // im Klartext landen, ohne dass es auffällt. Sollte praktisch nie auftreten,
+  // weil app.js erst nach erfolgreicher Entsperrung überhaupt läuft.
+  async function putPhoto(id, dataUrl) {
+    if (isNative) {
+      if (!masterKey) throw new Error('Kein Schlüssel verfügbar - Foto kann nicht gespeichert werden.');
+      const envelope = await encryptState(masterKey, dataUrl);
+      await photoDbPut(id, { enc: true, envelope });
+    } else {
+      await photoDbPut(id, { enc: false, dataUrl });
+    }
+  }
+  async function getPhoto(id) {
+    const rec = await photoDbGet(id);
+    if (!rec) return null;
+    if (rec.enc) {
+      if (!masterKey) throw new Error('Foto ist verschlüsselt, aber kein Schlüssel verfügbar.');
+      return decryptState(masterKey, rec.envelope);
+    }
+    return rec.dataUrl;
+  }
+  async function deletePhoto(id) {
+    await photoDbDelete(id);
+  }
+  window.FiaLock = { putPhoto, getPhoto, deletePhoto };
+
   // ---------- IndexedDB-Spiegel der alten PIN-Metadaten ----------
   // Aus der PIN-Zeit: eine zweite Kopie der Lock-Metadaten, weil Browser
   // localStorage ohne Vorwarnung räumen können. Wird nur noch gelesen (für die
