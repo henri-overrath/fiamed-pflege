@@ -8,7 +8,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
-        excludeWebViewDataFromBackup()
+        BackupExclusion.excludeWebViewData()
         return true
     }
 
@@ -20,50 +20,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func applicationDidEnterBackground(_ application: UIApplication) {
         // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
         // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
-        excludeWebViewDataFromBackup()
-    }
-
-    // Der Wundfoto-Speicher (IndexedDB) und der übrige App-Zustand (localStorage) liegen
-    // ausschließlich lokal verschlüsselt auf dem Gerät (lock.js, CLAUDE.md Regel 2).
-    // WKWebView legt seine Daten unter Library/WebKit ab, und "Library" wird von iOS
-    // standardmäßig in iCloud-Backups UND bei der Geräte-zu-Geräte-Migration (Quick
-    // Start) mitgesichert - ohne diesen Ausschluss würden Gesundheitsdaten unbemerkt auf
-    // Apple-Server bzw. ein anderes Gerät wandern, was der ganzen "kein Server"-
-    // Architektur widerspricht (siehe MARKT.md).
-    //
-    // Läuft bei jedem Start und beim Wechsel in den Hintergrund erneut (ähnlich wie
-    // flushPendingWrite in lock.js): WKWebView legt laufend neue Dateien an, die die
-    // Backup-Markierung nicht automatisch von ihrem Ordner erben, und der genaue
-    // Ordnername unter Library/WebKit ist ein von Apple nicht offiziell dokumentiertes
-    // Implementierungsdetail - deshalb wird hier rekursiv der ganze WebKit-Ordner
-    // markiert statt ein einzelner, vermuteter Unterpfad.
-    //
-    // ⚠️ Auf einem echten Gerät noch nicht verifiziert (hier nur geschrieben, nicht
-    // gebaut/getestet - dafür fehlen in dieser Umgebung Xcode und ein Gerät/Simulator).
-    // Vor der Veröffentlichung prüfen: Einstellungen > [Name] > iCloud > Backup >
-    // "Nächstes Backup enthält" darf FiaMed Pflege nicht mit nennenswerter Größe zeigen,
-    // nachdem mindestens ein Wundfoto aufgenommen wurde.
-    private func excludeWebViewDataFromBackup() {
-        guard let libraryDir = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first else { return }
-        excludeFromBackupRecursively(at: libraryDir.appendingPathComponent("WebKit"))
-    }
-
-    private func excludeFromBackupRecursively(at url: URL) {
-        var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else { return }
-        var mutableUrl = url
-        var values = URLResourceValues()
-        values.isExcludedFromBackup = true
-        do {
-            try mutableUrl.setResourceValues(values)
-        } catch {
-            print("FiaMed Pflege: Backup-Ausschluss fehlgeschlagen für \(url.path): \(error)")
-        }
-        if isDirectory.boolValue, let contents = try? FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil) {
-            for child in contents {
-                excludeFromBackupRecursively(at: child)
-            }
-        }
+        // Hinweis: Bei dieser scene-basierten App feuert dieser Hook im Simulator nicht
+        // zuverlässig - der eigentliche Aufruf läuft über SceneDelegate.sceneDidEnterBackground
+        // (siehe BackupExclusion.swift). Bleibt hier zusätzlich stehen, falls doch erreichbar.
+        BackupExclusion.excludeWebViewData()
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
