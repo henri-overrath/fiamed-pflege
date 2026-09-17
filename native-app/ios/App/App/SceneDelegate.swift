@@ -21,4 +21,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
         SceneDelegateProxy.shared.scene(scene, continue: userActivity)
     }
+
+    func sceneDidEnterBackground(_ scene: UIScene) {
+        // Siehe BackupExclusion.swift: AppDelegate.applicationDidEnterBackground feuert bei
+        // dieser scene-basierten App nicht zuverlässig, dieser scene-level Hook schon.
+        BackupExclusion.excludeWebViewData()
+    }
 }
