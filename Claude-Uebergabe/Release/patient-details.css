@@ -53,3 +53,10 @@
 .severe-check{display:flex!important;align-items:center;gap:8px;font-size:13px;font-weight:600!important;color:var(--ink)!important;margin:12px 0 0!important;cursor:pointer}
 .severe-check input{width:18px;height:18px;accent-color:var(--red)}
 .lightbox-actions{display:flex;justify-content:space-between;gap:8px;margin-top:14px}
+
+/* Großer „Mehr Infos"-Knopf (Wunsch der Tante, 14.10.2026): Das kleine ⓘ (26px) neben
+   dem Namen hat sie mit dem Finger kaum getroffen. Jetzt ein breiter Knopf, mind. 48px hoch. */
+.info-btn.info-big{width:100%;height:auto;min-height:48px;border-radius:14px;border-color:var(--blue);background:var(--blue-soft);color:var(--blue);font:700 16px inherit;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:10px 14px;margin:4px 0 14px}
+.info-btn.info-big .info-big-i{font-size:22px;line-height:1}
+.info-btn.info-big small{font-weight:500;font-size:13px;opacity:.8}
+.info-btn.info-big:hover{background:var(--blue);color:#fff}
