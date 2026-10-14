@@ -8,3 +8,9 @@
 /* Kilometerstand "von … bis …" unter der Kilometer-Zahl (Zusammenfassung, Tagesbericht, Fahrtenliste) */
 .km-range{display:block;margin-top:4px;font-size:12px;font-weight:600;opacity:.75;font-variant-numeric:tabular-nums}
 .km-range-total{border-color:var(--blue)!important;background:var(--blue-soft)}
+/* "Ich bin da", obwohl der letzte Besuch noch läuft: gelber Hinweis mit "fertig um" (14.10.2026) */
+.forgotten-visit{display:grid;gap:8px;margin:0 0 14px;padding:12px;border-radius:12px;background:#fff7df;border:1px solid #f3dfa1;color:#9b6700;font-size:13px}
+.forgotten-visit p{margin:0;color:inherit}
+.forgotten-visit b{color:var(--ink)}
+.forgotten-visit label{display:grid;gap:6px;font-weight:650;color:var(--ink)}
+body.dark .forgotten-visit{background:#3a2f12;border-color:#5c4a1c;color:#f0c560}
