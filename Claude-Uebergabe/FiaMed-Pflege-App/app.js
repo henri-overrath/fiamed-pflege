@@ -252,7 +252,11 @@ $('#woundCompareBtn')?.addEventListener('click',()=>{const ids=selectedWoundIds(
      dieselbe Funktion, die auch die Patientensuche tippfehler-tolerant macht) auf den
      ähnlichsten Begriff korrigiert - aber nur bei kleinen Abweichungen, damit z. B. Patienten-
      oder Materialnamen nicht versehentlich verändert werden. */
-  const PILOT_KEYWORDS=['hallo','hi','moin','morgen','tag','abend','wie','geht','es','dir','danke','wer','bist','kannst','spaet','uhr','uhrzeit','datum','welcher','heute','fehlen','fehlt','offene','offen','noch','patient','patienten','material','nachbestellen','leer','brauche','liste','kilometer','diesen','monat','arbeitszeit','arbeite','stunden','bericht','tagesbericht','statistik','kalender','einstellung','einstellungen','zeige','oeffne','offne','tour','heutige','starte','start','beende','beendet','markiere','als','besucht','besuch','loesche','losche','entferne','navigation','witz','erzaehl','wetter','gebaut','programmiert','fertig','bin','ich','fuer','home','startseite','uebersicht','plus','minus','mal','durch','geteilt','rechne','rechnen'];
+  const PILOT_KEYWORDS=['hallo','hi','moin','morgen','tag','abend','wie','geht','es','dir','danke','wer','bist','kannst','spaet','uhr','uhrzeit','datum','welcher','heute','fehlen','fehlt','offene','offen','noch','patient','patienten','material','nachbestellen','leer','brauche','liste','kilometer','diesen','monat','arbeitszeit','arbeite','stunden','bericht','tagesbericht','statistik','kalender','einstellung','einstellungen','zeige','oeffne','offne','tour','heutige','starte','start','beende','beendet','markiere','als','besucht','besuch','loesche','losche','entferne','navigation','witz','erzaehl','wetter','gebaut','programmiert','fertig','bin','ich','fuer','home','startseite','uebersicht','plus','minus','mal','durch','geteilt','rechne','rechnen',
+    // Ohne diese Einträge zieht pilotWordFix sie auf ähnliche Stichwörter: "weiter" wurde zu
+    // "wetter" (Abstand 1), dadurch landete "Wie geht es weiter?" bei der Wetter-Antwort.
+    // Gleichzeitig macht die Liste die neuen Fragen tippfehler-tolerant ("Geburstag").
+    'weiter','naechste','naechster','geburtstag','geburtstage','unterwegs','woche'];
   function pilotWordFix(w){const nw=normal(w);if(nw.length<3||PILOT_KEYWORDS.includes(nw))return nw;let best=null,bestD=Infinity;for(const k of PILOT_KEYWORDS){const d=lev(nw,k);if(d<bestD){bestD=d;best=k}}return best&&bestD<=Math.max(1,Math.floor(nw.length*.25))?best:nw}
   function pilotNormal(q){return String(q).split(/\s+/).map(pilotWordFix).join('')}
   /* Witze: keiner soll zweimal hintereinander drankommen, deshalb merkt sich der Pilot
@@ -285,7 +289,7 @@ $('#woundCompareBtn')?.addEventListener('click',()=>{const ids=selectedWoundIds(
     else if(/witz|erzaehl/.test(n)) answer=pilotJoke();
     else if(/binichfertig|fertigheute|tourfertig/.test(n)) answer=allToday.length?(openPatients.length?'Noch '+openPatients.length+' offen. 💪':'Ja, alle erledigt! 🎉'):'Heute ist noch keine Tour geplant.';
     else if(/kilometer.*monat|monat.*kilometer/.test(n)){const mk=Object.entries(state.kilometerLog||{}).filter(([d])=>new Date(d).getMonth()===now.getMonth()&&new Date(d).getFullYear()===now.getFullYear()).reduce((s,[,x])=>s+Number(x),0);answer='🚗 Diesen Monat: '+mk.toFixed(1)+' km.';}
-    else if(/n[ae]*chst.*(dran|patient)|(wer|welch).*n[ae]*chst|wiegehtsweiter/.test(n)){const nx=nextPatient();answer=nx?(nx.current?'📍 Du bist gerade bei '+nx.p.name+'.':'➡️ Als Nächstes: '+nx.p.name+(nx.time?' um '+nx.time+' Uhr':'')+'.')+(nx.left>1?' Danach noch '+(nx.left-1)+' weitere.':' Das ist der letzte Besuch.'):'Heute ist niemand mehr offen. 🎉'}
+    else if(/n[ae]*chst.*(dran|patient)|(wer|welch).*n[ae]*chst|wiegeht(e?s)?weiter/.test(n)){const nx=nextPatient();answer=nx?(nx.current?'📍 Du bist gerade bei '+nx.p.name+'.':'➡️ Als Nächstes: '+nx.p.name+(nx.time?' um '+nx.time+' Uhr':'')+'.')+(nx.left>1?' Danach noch '+(nx.left-1)+' weitere.':' Das ist der letzte Besuch.'):'Heute ist niemand mehr offen. 🎉'}
     else if(/geburtstag/.test(n)){const t0=new Date();t0.setHours(0,0,0,0);const list=state.patients.filter(x=>!x.archived&&x.birthDate).map(x=>{const [,m,d]=String(x.birthDate).split('-').map(Number);let when=new Date(t0.getFullYear(),m-1,d);if(when<t0)when=new Date(t0.getFullYear()+1,m-1,d);return {x,when}}).filter(o=>o.when-t0<7*86400000).sort((a,b)=>a.when-b.when);answer=list.length?'🎂 Geburtstage in den nächsten 7 Tagen: '+list.map(o=>o.x.name+' ('+o.when.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'})+')').join(', ')+'.':'🎂 In den nächsten 7 Tagen hat niemand Geburtstag.'}
     else if(/unterwegs|wielangeschon/.test(n)){answer=state.tourStartedAt?'🚗 Deine Tour läuft seit '+Math.floor((Date.now()-state.tourStartedAt)/3600000)+' Std. '+Math.floor((Date.now()-state.tourStartedAt)/60000%60)+' Min.':'Die Tour ist noch nicht gestartet.'}
     else if(/besuch.*woche|woche.*besuch/.test(n)){const c=state.patients.flatMap(x=>x.visits||[]).filter(v=>v.start>Date.now()-7*86400000).length;answer='📅 In den letzten 7 Tagen: '+c+' Besuch'+(c===1?'':'e')+'.'}
@@ -515,7 +519,10 @@ body{margin:0;background:var(--bg);font:15px/1.55 -apple-system,BlinkMacSystemFo
      Bericht später wieder in der schicken Ansicht geöffnet werden kann (Häkchen-Knopf). */
   /* Alle heutigen Besuche, nach Startzeit sortiert (frühester zuerst) – ein Eintrag pro
      Besuch, mit dem dabei verwendeten Material. Wer zweimal besucht wurde, steht zweimal da. */
-  function todayVisitList(){return state.patients.flatMap(p=>(p.visits||[]).map((v,vi)=>({v,vi})).filter(({v})=>key(v.start)===key()).map(({v,vi})=>({pid:p.id,vi,name:p.name,start:v.start,end:v.end||v.start,duration:v.duration||0,materials:[...new Set(v.used||[])]}))).sort((a,b)=>a.start-b.start)}
+  // Auch Besuche, die gestern begonnen und erst heute geendet haben: genau der Fall
+  // "abzuschließen vergessen", für den es den Knopf "Zeit ändern" gibt. Ohne das tauchte so
+  // ein Besuch nirgends mehr auf und war damit nicht mehr korrigierbar.
+  function todayVisitList(){return state.patients.flatMap(p=>(p.visits||[]).map((v,vi)=>({v,vi})).filter(({v})=>key(v.start)===key()||key(v.end||v.start)===key()).map(({v,vi})=>({pid:p.id,vi,name:p.name,start:v.start,end:v.end||v.start,duration:v.duration||0,materials:[...new Set(v.used||[])]}))).sort((a,b)=>a.start-b.start)}
   /* 🎂 Hat der Patient heute Geburtstag? Liefert das neue Alter (oder true, wenn kein Jahr bekannt ist), sonst null. */
   function birthdayAge(p){const b=p?.birthDate;if(!b)return null;const [y,m,d]=String(b).split('-').map(Number);const t=new Date();if(m!==t.getMonth()+1||d!==t.getDate())return null;return y>1900?t.getFullYear()-y:true}
   /* Infos aus der Tagesplanung direkt auf der Tour-Karte: Uhrzeit, geplantes Material,
@@ -561,7 +568,11 @@ body{margin:0;background:var(--bg);font:15px/1.55 -apple-system,BlinkMacSystemFo
     const d=$('#modal');d.showModal();$('#closeModal').onclick=()=>d.close();
     $('#visitTimeForm').onsubmit=e=>{e.preventDefault();
       const at=val=>{const [h,m]=val.split(':').map(Number),x=new Date(v.start);x.setHours(h,m,0,0);return x.getTime()};
-      const start=at($('#vtStart').value),end=at($('#vtEnd').value);
+      const start=at($('#vtStart').value);let end=at($('#vtEnd').value);
+      // Besuch über Mitternacht (23:50 bis 00:10): beide Uhrzeiten liegen erst einmal auf dem
+      // Starttag, dadurch wäre das Ende vor dem Start. Ein früheres Ende meint den Folgetag.
+      // Ohne das ließ sich so ein Besuch gar nicht korrigieren - auch unverändert nicht.
+      if(end<start)end+=86400000;
       if(!(end>start)){$('#vtError').textContent='Das Ende muss nach dem Start liegen.';return}
       v.start=start;v.end=end;v.duration=Math.round((end-start)/1000);
       save('Besuchszeit geändert');d.close();renderAll();toast('Besuchszeit für '+p.name+' gespeichert')};
@@ -577,27 +588,42 @@ body{margin:0;background:var(--bg);font:15px/1.55 -apple-system,BlinkMacSystemFo
     bar.onclick=e=>{const b=e.target.closest('[data-rem]');if(!b)return;bar.remove();buttons[Number(b.dataset.rem)].run()};
     document.body.append(bar);
   }
+  /* Eine stehende Leiste wieder wegräumen, wenn ihr Anlass sich von selbst erledigt hat.
+     Ohne das fragte die Leiste weiter nach einem längst abgeschlossenen Besuch - und
+     blockierte dabei (wegen der Einmal-Sperre in showReminder) jede weitere Erinnerung. */
+  function dropReminder(id){const bar=$('#appReminder');if(bar&&bar.dataset.reminder===id)bar.remove()}
   /* Läuft ein Besuch länger als 60 Minuten, fragt Fia die Pflegekraft, ob sie vergessen hat abzuschließen. */
   const LONG_VISIT_MIN=60,SNOOZE_MIN=30;
   function checkLongVisit(){
-    const now=Date.now(),p=state.patients.find(x=>x.status==='active'&&x.visit&&now-x.visit.start>=LONG_VISIT_MIN*60000&&now-(reminderSnooze['visit'+x.id]||0)>=SNOOZE_MIN*60000);
-    if(!p)return;
+    const now=Date.now();
+    // Nur Besuche, die HEUTE begonnen haben: sonst fragt die Leiste nach einem Besuch von
+    // gestern endlos weiter ("läuft seit 1380 Min."). Nach Feierabend ebenfalls Ruhe.
+    const p=state.patients.find(x=>x.status==='active'&&x.visit&&key(x.visit.start)===key());
+    if(!p||state.dayClosed){dropReminder('visit');return}
+    if(now-p.visit.start<LONG_VISIT_MIN*60000||now-(reminderSnooze['visit'+p.id]||0)<SNOOZE_MIN*60000)return;
     const min=Math.round((now-p.visit.start)/60000);
     showReminder('visit','⏰ Bist du noch bei <b>'+esc(p.name)+'</b>? Der Besuch läuft seit '+min+' Min.',[
       {label:'Ja, noch dabei',run:()=>{reminderSnooze['visit'+p.id]=Date.now();toast('Ich frage in '+SNOOZE_MIN+' Minuten noch einmal.')}},
-      {label:'Jetzt abschließen',run:()=>{completePlanVisit(p);toast('Falsche Zeit? Im Tagesbericht kannst du sie mit „Zeit ändern“ korrigieren.')}}]);
+      // Zwischenzeitlich anders abgeschlossen? Dann nichts tun und ehrlich sagen, statt
+      // stillschweigend nichts zu speichern und trotzdem "gespeichert" zu melden.
+      {label:'Jetzt abschließen',run:()=>{if(p.status!=='active'){toast('Der Besuch ist bereits abgeschlossen.');return}completePlanVisit(p);setTimeout(()=>toast('Falsche Zeit? Im Tagesbericht kannst du sie mit „Zeit ändern“ korrigieren.'),2600)}}]);
   }
   setInterval(checkLongVisit,60000);setTimeout(checkLongVisit,3000);
   /* Pausen-Erinnerung: läuft die Tour seit 4 Stunden ohne Pause, kommt ein freundlicher Hinweis. */
   const BREAK_AFTER_MIN=240,BREAK_SNOOZE_MIN=60;
   function checkBreak(){
-    if(!state.tourStartedAt)return;
     const log=state.pauseLog||[],last=log[log.length-1];
-    if(last&&!last.end)return;
+    // Tour beendet, Feierabend oder Pause läuft schon: Anlass erledigt, Leiste wegräumen.
+    if(!state.tourStartedAt||state.dayClosed||(last&&!last.end)){dropReminder('break');return}
     const now=Date.now(),since=Math.max(state.tourStartedAt,last?.end||0);
     if(now-since<BREAK_AFTER_MIN*60000||now-(reminderSnooze.break||0)<BREAK_SNOOZE_MIN*60000)return;
     showReminder('break','☕ Du bist seit '+Math.floor((now-since)/3600000)+' Stunden ohne Pause unterwegs. Zeit für eine kleine Pause?',[
-      {label:'Pause starten',run:()=>{state.pauseLog=state.pauseLog||[];state.pauseLog.push({start:Date.now()});save('Pause über Erinnerung gestartet');renderAll();toast('Pause gestartet. Gute Erholung!')}},
+      // toggleTourPause() statt eines eigenen push(): die Funktion prüft selbst, ob schon eine
+      // Pause läuft, und erledigt save + renderAll. Der frühere eigene push konnte einen ZWEITEN
+      // offenen Pauseneintrag anlegen (z. B. wenn die Pause schon über die Arbeitszeit-Seite
+      // gestartet wurde und die Leiste noch stand). pauseSeconds() zählt dann beide offenen
+      // Einträge parallel, und die Gesamtarbeitszeit wird falsch bis negativ.
+      {label:'Pause starten',run:()=>{const l=state.pauseLog||[],cur=l[l.length-1];if(cur&&!cur.end){toast('Die Pause läuft bereits.');return}toggleTourPause()}},
       {label:'Später',run:()=>{reminderSnooze.break=Date.now();toast('Ich erinnere dich in '+BREAK_SNOOZE_MIN+' Minuten noch einmal.')}}]);
   }
   setInterval(checkBreak,60000);setTimeout(checkBreak,4000);
