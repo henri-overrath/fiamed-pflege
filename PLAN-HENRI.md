@@ -8,6 +8,56 @@ Er baut es dann mit dir zusammen.
 
 ---
 
+## 👀 So siehst du deine App
+
+Es gibt zwei Wege — such dir den aus, der gerade passt.
+
+### Weg 1: Nur anschauen (geht immer, auch auf dem Handy)
+
+Diese Adresse im Browser öffnen:
+
+**https://henri-overrath.github.io/fiamed-pflege/**
+
+Das ist immer der Stand, der schon **fertig** ist. Du musst nichts starten.
+Sobald ein Pull Request gemergt wird, baut GitHub die Seite von allein neu —
+das dauert etwa eine halbe Minute.
+
+### Weg 2: Deinen eigenen Stand sehen (wenn du grade baust)
+
+Wenn du gerade selbst etwas änderst, willst du **dein** Werk sehen und nicht den
+fertigen Stand von GitHub. Dafür läuft ein kleiner Server auf deinem Mac.
+
+> **Sag zu Claude:** „Zeig mir die App."
+
+Dann startet er den Testserver und die App geht direkt daneben auf. Du kannst sie
+auch selbst im Browser öffnen: **http://localhost:4173**
+
+Wichtig: Gearbeitet wird im Ordner **`Claude-Uebergabe/FiaMed-Pflege-App/`** — das ist
+deine Werkstatt. Der Ordner `Release/` daneben ist nur eine Kopie zum Veröffentlichen,
+da änderst du nichts.
+
+### Wenn du deine Änderung nicht siehst 🤔
+
+Das ist fast immer der Service Worker. Der merkt sich die alten Dateien, damit die App
+auch ohne Internet läuft — und zeigt dir deshalb manchmal das Alte. Zwei Dinge helfen:
+
+1. **Hart neu laden:** `Cmd` + `Shift` + `R`
+2. Hilft das nicht: in `service-worker.js` ganz oben die Zahl um eins hochzählen,
+   also `const CACHE = 'fiamed-pflege-pwa-v60'` → `v61`. Das musst du sowieso bei jeder
+   Änderung machen, sonst sieht deine Tante später die alte Version.
+
+### ⚠️ Nur erfundene Namen in der Web-Version!
+
+Die Web-Version hat **keinen Schutz** — kein Fingerabdruck, kein Code, alles steht offen
+im Browser. Sie ist nur deine Werkstatt zum Bauen und Anschauen.
+
+Deine Tante benutzt die **Handy-App**, und nur die ist geschützt.
+
+Deshalb beim Ausprobieren immer nur **Frau Muster** und **Herr Beispiel** eintippen —
+niemals echte Namen. Das ist Regel 1 ganz unten in dieser Datei.
+
+---
+
 ## ✅ Das hast du schon geschafft
 
 Das ist inzwischen eine richtig lange Liste — alles mit echten Pull Requests, so wie
