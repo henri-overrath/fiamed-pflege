@@ -510,7 +510,7 @@ body{margin:0;background:var(--bg);font:15px/1.55 -apple-system,BlinkMacSystemFo
      Bericht später wieder in der schicken Ansicht geöffnet werden kann (Häkchen-Knopf). */
   /* Alle heutigen Besuche, nach Startzeit sortiert (frühester zuerst) – ein Eintrag pro
      Besuch, mit dem dabei verwendeten Material. Wer zweimal besucht wurde, steht zweimal da. */
-  function todayVisitList(){return state.patients.flatMap(p=>(p.visits||[]).filter(v=>key(v.start)===key()).map(v=>({name:p.name,start:v.start,end:v.end||v.start,duration:v.duration||0,materials:[...new Set(v.used||[])]}))).sort((a,b)=>a.start-b.start)}
+  function todayVisitList(){return state.patients.flatMap(p=>(p.visits||[]).map((v,vi)=>({v,vi})).filter(({v})=>key(v.start)===key()).map(({v,vi})=>({pid:p.id,vi,name:p.name,start:v.start,end:v.end||v.start,duration:v.duration||0,materials:[...new Set(v.used||[])]}))).sort((a,b)=>a.start-b.start)}
   /* 🎂 Hat der Patient heute Geburtstag? Liefert das neue Alter (oder true, wenn kein Jahr bekannt ist), sonst null. */
   function birthdayAge(p){const b=p?.birthDate;if(!b)return null;const [y,m,d]=String(b).split('-').map(Number);const t=new Date();if(m!==t.getMonth()+1||d!==t.getDate())return null;return y>1900?t.getFullYear()-y:true}
   /* Infos aus der Tagesplanung direkt auf der Tour-Karte: Uhrzeit, geplantes Material,
@@ -538,15 +538,30 @@ body{margin:0;background:var(--bg);font:15px/1.55 -apple-system,BlinkMacSystemFo
   /* Eine Tagesbericht-Karte im "schicken" Look (Farbverlauf-Kopf, Kennzahlen-Kacheln,
      Abschnitte) - genutzt für den heutigen Live-Bericht UND für jeden wieder geöffneten
      gespeicherten Bericht, damit beide immer gleich aussehen. */
-  function renderReportCard({day:dayLabel,createdAt,patients,reorder,km,kmFrom=null,kmTo=null,worktime}){
+  function renderReportCard({day:dayLabel,createdAt,patients,reorder,km,kmFrom=null,kmTo=null,worktime,editable=false}){
     const timeOf=t=>new Date(t).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
     const chips=list=>'<div class="rc-mats">'+list.map(m=>`<span class="rc-mat">${esc(m)}</span>`).join('')+'</div>';
     /* Ältere gespeicherte Berichte kennen noch kein Material pro Besuch (materials fehlt) – dann bleibt es wie früher. */
     const matBlock=p=>{const m=p.materials;if(!Array.isArray(m))return '';if(!m.length)return '<div class="rc-mat-none">Kein Material verwendet</div>';return chips(m.slice(0,3))+(m.length>3?`<details class="rc-more"><summary>Alle Materialien anzeigen (${m.length})</summary>${chips(m.slice(3))}</details>`:'')};
-    const patientList=patients.length?'<ul class="rc-visits">'+[...patients].sort((a,b)=>(a.start||0)-(b.start||0)).map(p=>`<li class="rc-visit"><div class="rc-visit-time">${p.start?timeOf(p.start)+`<small>bis ${timeOf(p.end||p.start)}</small>`:'–'}</div><div><div class="rc-visit-name">${esc(p.name)}${p.duration?`<small>${Math.max(1,Math.round(p.duration/60))} Min.</small>`:''}</div>${matBlock(p)}</div></li>`).join('')+'</ul>':'<p class="rc-empty">Keine Besuche dokumentiert.</p>';
+    const patientList=patients.length?'<ul class="rc-visits">'+[...patients].sort((a,b)=>(a.start||0)-(b.start||0)).map(p=>`<li class="rc-visit"><div class="rc-visit-time">${p.start?timeOf(p.start)+`<small>bis ${timeOf(p.end||p.start)}</small>`:'–'}</div><div><div class="rc-visit-name">${esc(p.name)}${p.duration?`<small>${Math.max(1,Math.round(p.duration/60))} Min.</small>`:''}</div>${editable&&p.pid&&p.duration>=7200?'<div class="rc-long">Lange Dauer. Stimmt die Zeit?</div>':''}${matBlock(p)}${editable&&p.pid?`<button type="button" class="rc-edit-time" data-edit-visit="${esc(p.pid)}" data-visit-index="${p.vi}">✏️ Zeit ändern</button>`:''}</div></li>`).join('')+'</ul>':'<p class="rc-empty">Keine Besuche dokumentiert.</p>';
     const reorderList=reorder.length?'<ul>'+reorder.map(g=>`<li>${g.quantity} × ${esc(g.name)} – ${esc(g.patient)}</li>`).join('')+'</ul>':'<p class="rc-empty">Nichts zu bestellen.</p>';
     return `<div class="rc-card"><div class="rc-hero"><div><div class="rc-brand"><span class="rc-mark">✚</span>FiaMed Pflege</div><h1>Tagesbericht</h1><p>${esc(state.settings?.caregiver||'Pflegekraft')}</p></div><div class="rc-date"><b>${esc(dayLabel)}</b>${createdAt?'erstellt '+new Date(createdAt).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr':''}</div></div><div class="rc-facts"><div class="rc-fact"><span>Besuche</span><b>${patients.length}</b></div><div class="rc-fact"><span>Kilometer</span><b>${km.toFixed(1)} km</b>${kmFrom!=null&&kmTo!=null?`<small class="km-range">${kmRangeText({from:kmFrom,to:kmTo})}</small>`:''}</div><div class="rc-fact"><span>Arbeitszeit</span><b>${fmt(worktime)}</b></div></div><div class="rc-grid"><section class="rc-section"><h2>Besuchte Patienten</h2>${patientList}</section><section class="rc-section"><h2>Material zum Nachbestellen</h2>${reorderList}</section></div></div>`;
   }
+  /* Besuchszeit nachträglich ändern (z. B. wenn „Patient abschließen“ vergessen wurde).
+     Nur Start und Ende am selben Tag; die Dauer wird neu berechnet. Nur eigene Dokumentation, keine Abrechnung. */
+  function openVisitTimeEdit(pid,vi){
+    const p=state.patients.find(x=>x.id===pid),v=p&&(p.visits||[])[vi];if(!v)return;
+    const hm=t=>{const d=new Date(t);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
+    $('#modalContent').innerHTML=`<form id="visitTimeForm" class="modal-inner modal-form"><div class="section-head"><div><h2>Besuchszeit: ${esc(p.name)}</h2><p>Hast du vergessen abzuschließen? Dann stell hier die richtige Zeit ein.</p></div></div><div class="form-grid"><label>Von<input id="vtStart" name="start" type="time" required value="${hm(v.start)}"></label><label>Bis<input id="vtEnd" name="end" type="time" required value="${hm(v.end||v.start)}"></label></div><p id="vtError" class="form-error" role="alert"></p><div class="modal-actions"><button type="button" id="closeModal" class="btn secondary">Abbrechen</button><button class="btn">Speichern</button></div></form>`;
+    const d=$('#modal');d.showModal();$('#closeModal').onclick=()=>d.close();
+    $('#visitTimeForm').onsubmit=e=>{e.preventDefault();
+      const at=val=>{const [h,m]=val.split(':').map(Number),x=new Date(v.start);x.setHours(h,m,0,0);return x.getTime()};
+      const start=at($('#vtStart').value),end=at($('#vtEnd').value);
+      if(!(end>start)){$('#vtError').textContent='Das Ende muss nach dem Start liegen.';return}
+      v.start=start;v.end=end;v.duration=Math.round((end-start)/1000);
+      save('Besuchszeit geändert');d.close();renderAll();toast('Besuchszeit für '+p.name+' gespeichert')};
+  }
+  document.addEventListener('click',e=>{const b=e.target.closest('[data-edit-visit]');if(b)openVisitTimeEdit(b.dataset.editVisit,Number(b.dataset.visitIndex))});
   function openReportView(i){
     const r=(state.reports||[])[i];
     if(!r)return;
@@ -572,7 +587,7 @@ body{margin:0;background:var(--bg);font:15px/1.55 -apple-system,BlinkMacSystemFo
     const groups=reportMaterialGroups(), patients=state.patients.filter(p=>!p.archived), materials=state.materials.filter(m=>!m.archived);
     const preview=draftDeleted
       ?'<div class="report-empty-state"><b>Kein Tagesbericht angezeigt</b><p>Der aktuelle Bericht wurde entfernt. Besuche und Materialeinträge bleiben sicher gespeichert.</p></div>'
-      :renderReportCard({day:day(),createdAt:null,...reportSnapshot()});
+      :renderReportCard({day:day(),createdAt:null,...reportSnapshot(),editable:true});
     const deleteLabel=latest?'🗑 Gespeicherten Bericht löschen':draftDeleted?'↺ Aktuellen Bericht wieder anzeigen':'🗑 Aktuellen Tagesbericht löschen';
     const historyRows=reports.map((r,i)=>{
       const hasData=Array.isArray(r.patients);
