@@ -583,6 +583,19 @@ body{margin:0;background:var(--bg);font:15px/1.55 -apple-system,BlinkMacSystemFo
       {label:'Jetzt abschließen',run:()=>{completePlanVisit(p);toast('Falsche Zeit? Im Tagesbericht kannst du sie mit „Zeit ändern“ korrigieren.')}}]);
   }
   setInterval(checkLongVisit,60000);setTimeout(checkLongVisit,3000);
+  /* Pausen-Erinnerung: läuft die Tour seit 4 Stunden ohne Pause, kommt ein freundlicher Hinweis. */
+  const BREAK_AFTER_MIN=240,BREAK_SNOOZE_MIN=60;
+  function checkBreak(){
+    if(!state.tourStartedAt)return;
+    const log=state.pauseLog||[],last=log[log.length-1];
+    if(last&&!last.end)return;
+    const now=Date.now(),since=Math.max(state.tourStartedAt,last?.end||0);
+    if(now-since<BREAK_AFTER_MIN*60000||now-(reminderSnooze.break||0)<BREAK_SNOOZE_MIN*60000)return;
+    showReminder('break','☕ Du bist seit '+Math.floor((now-since)/3600000)+' Stunden ohne Pause unterwegs. Zeit für eine kleine Pause?',[
+      {label:'Pause starten',run:()=>{state.pauseLog=state.pauseLog||[];state.pauseLog.push({start:Date.now()});save('Pause über Erinnerung gestartet');renderAll();toast('Pause gestartet. Gute Erholung!')}},
+      {label:'Später',run:()=>{reminderSnooze.break=Date.now();toast('Ich erinnere dich in '+BREAK_SNOOZE_MIN+' Minuten noch einmal.')}}]);
+  }
+  setInterval(checkBreak,60000);setTimeout(checkBreak,4000);
   function openReportView(i){
     const r=(state.reports||[])[i];
     if(!r)return;
