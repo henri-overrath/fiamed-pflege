@@ -562,6 +562,27 @@ body{margin:0;background:var(--bg);font:15px/1.55 -apple-system,BlinkMacSystemFo
       save('Besuchszeit geändert');d.close();renderAll();toast('Besuchszeit für '+p.name+' gespeichert')};
   }
   document.addEventListener('click',e=>{const b=e.target.closest('[data-edit-visit]');if(b)openVisitTimeEdit(b.dataset.editVisit,Number(b.dataset.visitIndex))});
+  /* Erinnerungsleiste unten (für „Abschließen vergessen?“ und die Pausen-Erinnerung).
+     Nur im Speicher: nach dem Neuladen wird nach einer Weile noch einmal gefragt. */
+  const reminderSnooze={};
+  function showReminder(id,html,buttons){
+    if($('#appReminder'))return;
+    const bar=document.createElement('div');bar.id='appReminder';bar.className='app-reminder';bar.setAttribute('role','alert');bar.dataset.reminder=id;
+    bar.innerHTML='<span>'+html+'</span><div class="app-reminder-actions">'+buttons.map((b,i)=>'<button type="button" class="'+(i===0?'btn':'btn secondary')+'" data-rem="'+i+'">'+esc(b.label)+'</button>').join('')+'</div>';
+    bar.onclick=e=>{const b=e.target.closest('[data-rem]');if(!b)return;bar.remove();buttons[Number(b.dataset.rem)].run()};
+    document.body.append(bar);
+  }
+  /* Läuft ein Besuch länger als 60 Minuten, fragt Fia die Pflegekraft, ob sie vergessen hat abzuschließen. */
+  const LONG_VISIT_MIN=60,SNOOZE_MIN=30;
+  function checkLongVisit(){
+    const now=Date.now(),p=state.patients.find(x=>x.status==='active'&&x.visit&&now-x.visit.start>=LONG_VISIT_MIN*60000&&now-(reminderSnooze['visit'+x.id]||0)>=SNOOZE_MIN*60000);
+    if(!p)return;
+    const min=Math.round((now-p.visit.start)/60000);
+    showReminder('visit','⏰ Bist du noch bei <b>'+esc(p.name)+'</b>? Der Besuch läuft seit '+min+' Min.',[
+      {label:'Ja, noch dabei',run:()=>{reminderSnooze['visit'+p.id]=Date.now();toast('Ich frage in '+SNOOZE_MIN+' Minuten noch einmal.')}},
+      {label:'Jetzt abschließen',run:()=>{completePlanVisit(p);toast('Falsche Zeit? Im Tagesbericht kannst du sie mit „Zeit ändern“ korrigieren.')}}]);
+  }
+  setInterval(checkLongVisit,60000);setTimeout(checkLongVisit,3000);
   function openReportView(i){
     const r=(state.reports||[])[i];
     if(!r)return;
