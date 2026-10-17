@@ -477,7 +477,12 @@ body{margin:0;background:var(--bg);font:15px/1.55 -apple-system,BlinkMacSystemFo
   function birthdayAge(p){const b=p?.birthDate;if(!b)return null;const [y,m,d]=String(b).split('-').map(Number);const t=new Date();if(m!==t.getMonth()+1||d!==t.getDate())return null;return y>1900?t.getFullYear()-y:true}
   /* Infos aus der Tagesplanung direkt auf der Tour-Karte: Uhrzeit, geplantes Material,
      Tagesnotiz und der Hinweis für den nächsten Besuch – damit die Tante im Auto alles sieht. */
-  function tourInfoHtml(p){const e=planEntries(planDate()).find(x=>x.id===p.id)||{};const time=String(e.time||'').trim(),mats=((e.materials&&e.materials.length)?e.materials:(p.plannedMaterials||[])).map(m=>String(m).trim()).filter(Boolean),note=String(e.note||p.dailyNote||'').trim(),hint=String(p.nextHint||'').trim();if(!time&&!mats.length&&!note&&!hint)return '';return `<div class="tour-info">${time?`<span class="ti-time">🕘 ${esc(time)} Uhr</span>`:''}${mats.length?`<span>📦 ${esc(mats.join(', '))}</span>`:''}${note?`<span>📝 ${esc(note)}</span>`:''}${hint?`<span>💡 ${esc(hint)}</span>`:''}</div>`}
+  // Gibt es für heute einen Planeintrag, zählt AUSSCHLIESSLICH der - auch wenn Notiz oder
+  // Material darin leer sind. Sonst würde eine in der Tagesplanung bewusst gelöschte Notiz
+  // über den Rückfall auf p.dailyNote/p.plannedMaterials weiter auf der Tour-Karte stehen,
+  // und eine veraltete Notiz ist in der Pflege schlechter als gar keine. Der Rückfall auf
+  // die Patienten-Felder greift nur, wenn für heute gar nicht geplant wurde.
+  function tourInfoHtml(p){const entry=planEntries(planDate()).find(x=>x.id===p.id);const e=entry||{};const time=String(e.time||'').trim(),mats=(entry?(e.materials||[]):(p.plannedMaterials||[])).map(m=>String(m).trim()).filter(Boolean),note=String(entry?(e.note||''):(p.dailyNote||'')).trim(),hint=String(p.nextHint||'').trim();if(!time&&!mats.length&&!note&&!hint)return '';return `<div class="tour-info">${time?`<span class="ti-time">🕘 ${esc(time)} Uhr</span>`:''}${mats.length?`<span>📦 ${esc(mats.join(', '))}</span>`:''}${note?`<span>📝 ${esc(note)}</span>`:''}${hint?`<span>💡 ${esc(hint)}</span>`:''}</div>`}
   /* 📊 Wochenrückblick (Montag bis Sonntag dieser Woche): Besuche pro Tag als Balken,
      dazu Besuche, verschiedene Patienten, Kilometer und das meistgebrauchte Material. */
   function weekReviewHtml(){const start=monday(),days=Array.from({length:7},(_,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);return d}),todayK=key(),from=start.getTime();
