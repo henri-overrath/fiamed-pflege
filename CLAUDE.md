@@ -164,6 +164,9 @@ Fia wiederholt nur, was man ihm selbst gesagt hat. Henri hat Patientennamen im G
 erlaubt, weil nichts das Gerät verlässt; Papa bitte gegenchecken. Im Code: `ask()` (Lernen) ruft
 `askBasic()` (die alten Stichwort-Antworten) auf.
 
+**„✨ Cooler machen“** (Knopf in Fias Kopfzeile) wählt den Ton: Ernst (ohne Emojis), Freundlich, Locker.
+Gespeichert in `state.pilotMemory.tone`; `pilotTone()` ändert nur die Wortwahl der Antworten.
+
 ## ⚠️ Das Repository ist seit 22.08.2026 ÖFFENTLICH
 
 Grund: Nur so funktioniert das kostenlose automatische Hosting (GitHub Pages, siehe
