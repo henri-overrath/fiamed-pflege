@@ -75,3 +75,7 @@ body.dark .bday-badge{background:#3a2414;color:#fdba74}
 .pack-item:has(input:checked){background:var(--bg);opacity:.6}
 .pack-item:has(input:checked) b{text-decoration:line-through}
 .pack-hint{color:var(--muted);font-size:13px;margin-top:12px}
+
+/* Tour-Karten: Uhrzeit, Material, Notiz aus der Tagesplanung */
+.tour-info{grid-column:1/-1;display:grid;gap:5px;background:var(--bg);border-radius:12px;padding:9px 12px;font-size:13.5px;line-height:1.4;color:var(--ink)}
+.tour-info .ti-time{font-weight:800;color:var(--blue);font-variant-numeric:tabular-nums}
