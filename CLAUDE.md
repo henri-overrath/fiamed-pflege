@@ -154,6 +154,16 @@ Senden, ein Tipp zum Empfangen.
   zu diesem Feature (`git log --oneline --all --grep=Tourenpaket` bzw. `--grep=Tourenaustausch`).
 - Cache-Version in `service-worker.js` wurde für dieses Feature bereits auf `v20` erhöht.
 
+## 🧠 Fia (früher „PflegePilot“) lernt dazu (seit 17.10.2026)
+
+Der Assistent heißt jetzt **Fia**. Er merkt sich, was man ihm beibringt („Ich heiße …“,
+„Merk dir: …“, „Merk dir: Frage = Antwort“, „Was weißt du?“, „Vergiss alles“ / „Vergiss 2“ — Löschen
+immer mit Rückfrage). Das Gedächtnis liegt in `state.pilotMemory`, also nur auf dem Gerät (nativ
+von `lock.js` mitverschlüsselt). **Kein Internet, keine KI-Schnittstelle, keine medizinischen Tipps** —
+Fia wiederholt nur, was man ihm selbst gesagt hat. Henri hat Patientennamen im Gedächtnis ausdrücklich
+erlaubt, weil nichts das Gerät verlässt; Papa bitte gegenchecken. Im Code: `ask()` (Lernen) ruft
+`askBasic()` (die alten Stichwort-Antworten) auf.
+
 ## ⚠️ Das Repository ist seit 22.08.2026 ÖFFENTLICH
 
 Grund: Nur so funktioniert das kostenlose automatische Hosting (GitHub Pages, siehe
