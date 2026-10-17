@@ -96,3 +96,23 @@ body.dark .next-patient.current{background:linear-gradient(135deg,var(--card),#3
 .np-time small{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:3px}
 .np-actions{display:flex;gap:8px;flex-wrap:wrap}
 .np-actions .btn{flex:1;min-width:110px;min-height:46px}
+
+/* 🧤 Handschuh-Modus: größere Schrift und Tipp-Flächen (Einstellungen) */
+body.glove{font-size:18px}
+body.glove .btn,body.glove .small-btn{min-height:54px;font-size:17px;padding:14px 18px}
+body.glove .icon-btn{min-width:54px;min-height:54px;font-size:22px}
+body.glove .tour-card-actions button{min-height:62px;font-size:17px}
+body.glove .tour-card-actions .icon-btn{flex:0 0 62px}
+body.glove input,body.glove select,body.glove textarea,body.glove .select{font-size:18px;padding:14px}
+body.glove input[type=checkbox],body.glove input[type=radio]{width:28px;height:28px}
+body.glove .form-grid label{font-size:15px}
+body.glove .patient-info b{font-size:18px}
+body.glove .patient-info small{font-size:15px}
+body.glove .day-btn{padding:15px 0;font-size:16px}
+body.glove .nav-item{font-size:18px;padding:16px 15px}
+body.glove .mobile-nav button{font-size:13px;padding:6px 8px}
+body.glove .mobile-nav button span:first-child{font-size:24px}
+body.glove .np-actions .btn{min-height:60px}
+body.glove .tour-info{font-size:16px}
+body.glove .tour-card-actions{flex-wrap:wrap}
+body.glove .tour-card-actions button:not(.icon-btn){flex:1 1 100%}
