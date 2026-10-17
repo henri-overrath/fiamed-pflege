@@ -153,6 +153,35 @@ Echtzeit-Synchronisierung nötig) hierher zurückkommen.
       analog zur Envelope-Architektur aus BP360. Aufwand: Wochen, nicht Tage.
 - [ ] AVV mit dem Pflegedienst, EU-Hosting, DSFA.
 
+## ❓ Frage von Henri (17.10.2026): Kleine KI mit den Netlify-Credits
+
+**Papa, bitte kurz Ja / Nein / „nur so" sagen, bevor Henri irgendetwas baut.**
+
+Henri hat in seiner Flöten-App einen „Coach" gebaut: eine kleine KI über eine Netlify-Funktion
+(Limit 25 Fragen am Tag), die auf einen eingebauten Mini-Assistenten ohne KI zurückfällt, wenn
+das Limit oder die Credits aufgebraucht sind. So etwas möchte er auch für die Pflege-App
+haben. Er versucht dabei, alles datenschutzgerecht zu machen. Wenn dabei etwas ins Internet
+gehen würde, das nicht dorthin gehört, lässt er es lieber sein.
+
+**Henris Vorschlag (damit Regel 2 und Regel 3 aus `CLAUDE.md` nicht verletzt werden):**
+- Die KI bekommt **nie Patientendaten**: keine Namen, Adressen, Notizen, Fotos. Nur den Text,
+  den man ihr selbst eintippt.
+- Sie gibt **keine medizinischen Tipps** (MDR Regel 11). Erste Aufgabe: „Textfreundlich-Macher",
+  also Nachrichten an die Chefin oder Kolleginnen netter formulieren.
+- Ein Hinweis vor jeder Nutzung: „Bitte keine Patientennamen eintippen."
+- Der API-Zugang liegt nur in der Netlify-Funktion (Umgebungsvariable), **nie** im öffentlichen Repo.
+- Eingebauter Mini-Coach als Reserve, wenn die KI nicht antworten darf.
+
+**Offene Punkte für dich:**
+- [ ] Ist ein Server dieser Art (Netlify-Funktion, ohne Patientendaten) für dich okay?
+- [ ] Netlify pausiert **alle** Seiten im Konto, wenn die 300 Credits im Monat aufgebraucht
+      sind. Ist das ein Risiko für die Pflege-Seiten dort? Ein eigenes Tageslimit ist geplant.
+- [ ] Soll die Funktion in ein eigenes Netlify-Projekt, getrennt von der Flöten-Seite?
+- [ ] Darf die App im Handy-Programm (`native-app/`) diese Funktion überhaupt aufrufen,
+      oder soll die KI nur in der Web-Version zum Ausprobieren laufen?
+
+Stand: Henri hat nur eine klickbare Vorschau gebaut. **Es gibt noch keinen Code und keinen Server.**
+
 ---
 
 ## Dauerhafte Leitplanken
