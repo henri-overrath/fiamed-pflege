@@ -13,3 +13,6 @@
 @media(max-width:760px){.pilot-trigger{min-width:48px;padding:0 12px}.pilot{padding:22px 18px 18px}.pilot-title{font-size:25px}.pilot-suggestions{grid-template-columns:1fr 1fr}.pilot-form{position:sticky;bottom:0;background:inherit;padding-bottom:max(2px,env(safe-area-inset-bottom))}}
 
 .chat-message{white-space:pre-line}
+
+.pilot-cool{border:1px solid var(--blue);background:var(--blue-soft);color:var(--blue);border-radius:999px;padding:6px 12px;font:600 13px/1.2 inherit;font-family:inherit;cursor:pointer;margin-right:8px}
+.pilot-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.pilot-head>div:first-child{flex:1 1 auto;min-width:0}
