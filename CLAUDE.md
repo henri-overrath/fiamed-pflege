@@ -154,6 +154,37 @@ Senden, ein Tipp zum Empfangen.
   zu diesem Feature (`git log --oneline --all --grep=Tourenpaket` bzw. `--grep=Tourenaustausch`).
 - Cache-Version in `service-worker.js` wurde für dieses Feature bereits auf `v20` erhöht.
 
+## 👤 Rollen + Rückmeldung an die Chefin (seit 28.10.2026)
+
+Ergänzt den Tourenaustausch oben um die beiden Teile, die bisher fehlten: Die App weiß jetzt,
+auf wessen Handy sie läuft, und der Weg funktioniert in **beide** Richtungen.
+
+- **Rolle (`state.profile.role`):** Beim ersten Start fragt die App einmal „Chefin oder
+  Fachkraft?". Die Chefin sieht „Heutige Tour" und „Arbeitszeit" nicht mehr, dafür die
+  Senden-Knöpfe und den Einblick; die Fachkraft sieht „Tour empfangen" und „Rückmeldung an
+  Chefin". Änderbar unter Einstellungen → Meine Rolle.
+  **Das ist eine Ansichts-Weiche, KEIN Zugriffsschutz** — wer das Handy entsperrt hat, kann
+  die Rolle umstellen. Der Schutz bleibt die Gerätesperre (`lock.js`). Solange keine Rolle
+  gewählt ist, verhält sich die App exakt wie vorher (alles sichtbar).
+- **Rückmeldung (Präfix `FIAMED-STATUS-1:`):** Abends baut die Fachkraft ein verschlüsseltes
+  Paket mit erledigt/offen, Uhrzeit, Dauer, Material, Notiz und Kilometern. Die Chefin fügt es
+  unter „Rückmeldung empfangen" ein und sieht in der Tagesplanung pro Patient einen Status.
+  Zuordnung über den Namen (es gibt bewusst keine geteilten IDs), Überschreib-Schutz wie beim
+  Tourenpaket. **Bewusst ohne Wundfotos und ohne Wundbeschreibungen** — und bewusst kein
+  Leistungsnachweis, damit Regel 4 (keine Abrechnung) nicht gestreift wird.
+- **Ein Codewort je Fachkraft** (`teamPassphrase` + `teamPassphraseB`). Vorher konnte Fachkraft 1
+  die Tour von Fachkraft 2 mitlesen, wenn beide im selben Gruppenchat landeten. Bleibt das
+  zweite Feld leer, gilt weiter das erste — alte Installationen laufen unverändert.
+  Beim Empfangen probiert die Chefin-Seite beide Codewörter durch, damit sie nicht raten muss.
+- `share.js` wurde nur um das zweite Präfix erweitert (ein Parameter, zwei Wrapper); die
+  Kryptografie selbst ist unverändert. Bedienung liegt wie gehabt in `app.js`, Optik in
+  `team-rollen.css`.
+- **Falle, die beim Bauen zugeschlagen hat:** Der Startcode steht in `app.js` ganz oben
+  (`setup()` ~Zeile 199), neue Funktionen kommen ans Dateiende. Funktionen werden nach oben
+  gehoben, **ein `const` nicht** — eine Konstante am Dateiende, die der Startcode schon braucht,
+  ergibt „Cannot access … before initialization", und die App startet leer. Solche Listen also
+  in die Funktion schreiben.
+
 ## 🧠 Fia (früher „PflegePilot“) lernt dazu (seit 17.10.2026)
 
 Der Assistent heißt jetzt **Fia**. Er merkt sich, was man ihm beibringt („Ich heiße …“,
