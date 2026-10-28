@@ -1,4 +1,4 @@
-const CACHE = 'fiamed-pflege-pwa-v73';
+const CACHE = 'fiamed-pflege-pwa-v74';
 const APP_FILES = [
   './',
   './index.html',

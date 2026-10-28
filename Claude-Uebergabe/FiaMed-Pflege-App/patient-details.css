@@ -191,3 +191,15 @@ body.glove .mobile-nav button{font-size:clamp(10px,2.9vw,12px);padding:6px 2px}
 .note-archive{grid-column:1/-1;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:6px 0;background:var(--card)}.note-archive h3{margin:0 0 6px;font-size:15px}.empty-note{margin:0;color:var(--muted);font-size:13px}
 .na-entry{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line)}.na-entry p{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}.na-entry b{font-size:13px;color:var(--muted)}
 #archiveGeneralNote{margin:-4px 0 8px;justify-self:start}
+
+/* Druckgröße wählen (A4-Blatt mit verschiebbarem Foto) */
+.pl-body{display:flex;flex-direction:column;gap:10px}
+.pl-title{margin:0;font-size:18px;line-height:1.3}.pl-sub{margin:0;color:var(--muted);font-size:13.5px}.pl-count{font-weight:700;color:var(--blue);min-height:1.2em}
+.pl-sheet{position:relative;width:min(100%,calc(52vh*.707));aspect-ratio:210/297;margin:0 auto;background:#fff;border:1px solid #c9d2e3;border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,.14);touch-action:none;overflow:hidden}
+.pl-mid{position:absolute;left:50%;top:0;bottom:0;border-left:1px dashed #c9d2e3;pointer-events:none}.pl-mid2{position:absolute;top:50%;left:0;right:0;border-top:1px dashed #c9d2e3;pointer-events:none}
+.pl-photo{position:absolute;border:2px solid var(--blue);background:#eef2fb;cursor:grab;touch-action:none;user-select:none;overflow:hidden}
+.pl-photo img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none}
+.pl-handle{position:absolute;right:0;bottom:0;width:34px;height:34px;background:var(--blue);border-radius:10px 0 4px 0;color:#fff;display:grid;place-items:center;font-size:16px;cursor:nwse-resize;touch-action:none}
+.pl-size{text-align:center;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+.pl-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.pl-chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:8px 14px;font:inherit;font-size:14px;cursor:pointer}
+.pl-all{display:flex;gap:8px;align-items:center;font-size:14px}
