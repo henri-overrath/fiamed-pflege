@@ -163,3 +163,54 @@ body.glove .tour-card-actions button:not(.icon-btn){flex:1 1 100%}
 
 .add-photo-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.add-photo-row .add-photo{margin-top:0;text-align:center;cursor:pointer}
 @media(max-width:380px){.add-photo-row{grid-template-columns:1fr}}
+
+/* Handy-Ansicht (z. B. Google Pixel 9 Pro, ca. 412 px breit): Name zuerst, untere Leiste nie abgeschnitten */
+@media(max-width:760px){
+.mobile-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));justify-content:stretch;padding-left:max(2px,env(safe-area-inset-left,0px));padding-right:max(2px,env(safe-area-inset-right,0px))}
+.mobile-nav button{min-width:0;padding:3px 2px;font-size:clamp(10px,2.9vw,12px);line-height:1.15;text-align:center}
+.mobile-nav button span:last-child{display:block;max-width:100%;white-space:normal;overflow-wrap:anywhere;hyphens:auto}
+body.glove .mobile-nav button{font-size:clamp(10px,2.9vw,12px);padding:6px 2px}
+.mobile-nav button span:last-child{hyphens:manual}
+.tour-card{grid-template-columns:auto minmax(0,1fr) auto}
+.tour-card .avatar{grid-column:1;grid-row:1}
+.tour-card .patient-info{grid-column:2;grid-row:1;min-width:0}
+.tour-card .patient-info b{overflow-wrap:anywhere;font-size:17px;line-height:1.25}
+.tour-card .tour-move{grid-column:3;grid-row:1}
+.tour-card .status{grid-column:1/-1;grid-row:2;justify-self:start;margin-top:0}
+.tour-card .tour-info{grid-column:1/-1}
+.tour-card-actions{grid-column:1/-1}
+#statistics .grid{grid-template-columns:minmax(0,1fr)!important}
+.plan-grid{grid-template-columns:minmax(0,1fr)!important}
+.plan-grid>*{min-width:0}
+#dayplan select,#dayplan input{max-width:100%;min-width:0}
+.supply-form{grid-template-columns:minmax(0,1fr)}
+.supply-form>*{min-width:0}
+.supply-form select,.supply-form input{width:100%;max-width:100%}
+}
+
+.note-archive{grid-column:1/-1;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:6px 0;background:var(--card)}.note-archive h3{margin:0 0 6px;font-size:15px}.empty-note{margin:0;color:var(--muted);font-size:13px}
+.na-entry{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line)}.na-entry p{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}.na-entry b{font-size:13px;color:var(--muted)}
+#archiveGeneralNote{margin:-4px 0 8px;justify-self:start}
+
+/* Druckgröße wählen (A4-Blatt mit verschiebbarem Foto) */
+.pl-body{display:flex;flex-direction:column;gap:10px}
+.pl-title{margin:0;font-size:18px;line-height:1.3}.pl-sub{margin:0;color:var(--muted);font-size:13.5px}.pl-count{font-weight:700;color:var(--blue);min-height:1.2em}
+.pl-sheet{position:relative;width:min(100%,calc(52vh*.707));aspect-ratio:210/297;margin:0 auto;background:#fff;border:1px solid #c9d2e3;border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,.14);touch-action:none;overflow:hidden}
+.pl-mid{position:absolute;left:50%;top:0;bottom:0;border-left:1px dashed #c9d2e3;pointer-events:none}.pl-mid2{position:absolute;top:50%;left:0;right:0;border-top:1px dashed #c9d2e3;pointer-events:none}
+.pl-photo{position:absolute;border:2px solid var(--blue);background:#eef2fb;cursor:grab;touch-action:none;user-select:none;overflow:hidden}
+.pl-photo img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none}
+.pl-handle{position:absolute;right:0;bottom:0;width:34px;height:34px;background:var(--blue);border-radius:10px 0 4px 0;color:#fff;display:grid;place-items:center;font-size:16px;cursor:nwse-resize;touch-action:none}
+.pl-size{text-align:center;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+.pl-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.pl-chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:8px 14px;font:inherit;font-size:14px;cursor:pointer}
+.pl-all{display:flex;gap:8px;align-items:center;font-size:14px}
+
+/* Bericht-Druckansicht in der App mit Zurück-Knopf */
+.report-overlay{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.report-overlay-bar{display:flex;gap:10px;justify-content:space-between;padding:10px max(12px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line);background:var(--card)}
+.report-overlay iframe{flex:1;width:100%;border:0;background:#fff}
+@media print{.report-overlay-bar{display:none}}
+
+/* Startseite: Tag beendet */
+.day-closed{display:flex;flex-direction:column;gap:2px;background:#e5f6ec;color:#16754a;border:1px solid #bfe6cd;border-radius:16px;padding:12px 16px;margin-top:14px}
+body.dark .day-closed{background:#17372c;color:#7fe0b0;border-color:#2a5a46}
+.day-closed span{font-size:13px}.day-reopen{margin-top:10px}
