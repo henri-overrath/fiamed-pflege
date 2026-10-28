@@ -1,5 +1,13 @@
 // share.js — Ver-/Entschlüsselung für den Tourenaustausch zwischen Chefin und Fachkräften.
 //
+// Zwei Richtungen, gleiche Technik:
+//   Chefin  -> Fachkraft: das Tourenpaket    (Präfix FIAMED-TOUR-1:)
+//   Fachkraft -> Chefin:  die Rückmeldung    (Präfix FIAMED-STATUS-1:)
+// Der einzige Unterschied ist das Präfix im Text — dadurch kann die App beim Einfügen
+// erkennen, was sie gerade vor sich hat, und ein Tourenpaket landet nie versehentlich in
+// der Rückmelde-Ansicht (oder umgekehrt). Schlüsselableitung und Verschlüsselung sind für
+// beide Richtungen identisch, es gibt also auch nur ein Codewort pro Fachkraft.
+//
 // Warum eine eigene Datei statt lock.js zu erweitern: lock.js schützt die App-Sperre
 // (PIN -> Schlüssel für den gesamten localStorage-Inhalt dieses einen Geräts) und ist laut
 // CLAUDE.md bewusst Papa-Bereich, an dem nichts geändert werden soll, ohne vorher zu fragen.
@@ -20,6 +28,7 @@
   'use strict';
 
   const PREFIX = 'FIAMED-TOUR-1:';
+  const PREFIX_STATUS = 'FIAMED-STATUS-1:';
   const ITERATIONS = 150000;
   const textEncoder = new TextEncoder();
   const textDecoder = new TextDecoder();
@@ -57,7 +66,7 @@
   // data: beliebiges JSON-fähiges Objekt (das Tourenpaket). passphrase: das Team-Codewort.
   // Ergebnis: ein einzeiliger Textblock, der komplett per Copy-Paste / Teilen-Funktion
   // weitergegeben werden kann.
-  async function encryptTourPackage(passphrase, data) {
+  async function encryptTourPackage(passphrase, data, prefix = PREFIX) {
     if (!passphrase || !String(passphrase).trim()) throw new Error('kein-codewort');
     const salt = randomBytes(16);
     const iv = randomBytes(12);
@@ -65,7 +74,7 @@
     const ct = await crypto.subtle.encrypt(
       { name: 'AES-GCM', iv }, key, textEncoder.encode(JSON.stringify(data))
     );
-    return PREFIX + [
+    return prefix + [
       bytesToBase64(salt),
       bytesToBase64(iv),
       bytesToBase64(new Uint8Array(ct))
@@ -73,10 +82,10 @@
   }
 
   // Wirft bei falschem Codewort oder unlesbarem Text einen Error mit sprechendem .message.
-  async function decryptTourPackage(passphrase, text) {
+  async function decryptTourPackage(passphrase, text, prefix = PREFIX) {
     const trimmed = String(text || '').trim();
-    if (!trimmed.startsWith(PREFIX)) throw new Error('kein-tourenpaket');
-    const parts = trimmed.slice(PREFIX.length).split(':');
+    if (!trimmed.startsWith(prefix)) throw new Error('kein-tourenpaket');
+    const parts = trimmed.slice(prefix.length).split(':');
     if (parts.length !== 3) throw new Error('kein-tourenpaket');
     const [saltB64, ivB64, ctB64] = parts;
     if (!passphrase || !String(passphrase).trim()) throw new Error('kein-codewort');
@@ -101,5 +110,14 @@
     }
   }
 
-  window.FiaTour = { encryptTourPackage, decryptTourPackage, PREFIX };
+  // Die Rückmeldung ist dieselbe Verschlüsselung mit dem anderen Präfix — zwei dünne
+  // Wrapper, damit in app.js nirgends ein Präfix von Hand mitgegeben werden muss.
+  const encryptStatusPackage = (passphrase, data) => encryptTourPackage(passphrase, data, PREFIX_STATUS);
+  const decryptStatusPackage = (passphrase, text) => decryptTourPackage(passphrase, text, PREFIX_STATUS);
+
+  window.FiaTour = {
+    encryptTourPackage, decryptTourPackage,
+    encryptStatusPackage, decryptStatusPackage,
+    PREFIX, PREFIX_STATUS
+  };
 })();

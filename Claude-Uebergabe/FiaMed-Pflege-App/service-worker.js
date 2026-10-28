@@ -24,6 +24,7 @@ const APP_FILES = [
   './material-schnell.css',
   './tour-progress.css',
   './patient-details.css',
+  './team-rollen.css',
   './app.js',
   './pwa.js',
   './manifest.webmanifest',
