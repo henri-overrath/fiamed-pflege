@@ -163,3 +163,27 @@ body.glove .tour-card-actions button:not(.icon-btn){flex:1 1 100%}
 
 .add-photo-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.add-photo-row .add-photo{margin-top:0;text-align:center;cursor:pointer}
 @media(max-width:380px){.add-photo-row{grid-template-columns:1fr}}
+
+/* Handy-Ansicht (z. B. Google Pixel 9 Pro, ca. 412 px breit): Name zuerst, untere Leiste nie abgeschnitten */
+@media(max-width:760px){
+.mobile-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));justify-content:stretch;padding-left:max(2px,env(safe-area-inset-left,0px));padding-right:max(2px,env(safe-area-inset-right,0px))}
+.mobile-nav button{min-width:0;padding:3px 2px;font-size:clamp(10px,2.9vw,12px);line-height:1.15;text-align:center}
+.mobile-nav button span:last-child{display:block;max-width:100%;white-space:normal;overflow-wrap:anywhere;hyphens:auto}
+body.glove .mobile-nav button{font-size:clamp(10px,2.9vw,12px);padding:6px 2px}
+.mobile-nav button span:last-child{hyphens:manual}
+.tour-card{grid-template-columns:auto minmax(0,1fr) auto}
+.tour-card .avatar{grid-column:1;grid-row:1}
+.tour-card .patient-info{grid-column:2;grid-row:1;min-width:0}
+.tour-card .patient-info b{overflow-wrap:anywhere;font-size:17px;line-height:1.25}
+.tour-card .tour-move{grid-column:3;grid-row:1}
+.tour-card .status{grid-column:1/-1;grid-row:2;justify-self:start;margin-top:0}
+.tour-card .tour-info{grid-column:1/-1}
+.tour-card-actions{grid-column:1/-1}
+#statistics .grid{grid-template-columns:minmax(0,1fr)!important}
+.plan-grid{grid-template-columns:minmax(0,1fr)!important}
+.plan-grid>*{min-width:0}
+#dayplan select,#dayplan input{max-width:100%;min-width:0}
+.supply-form{grid-template-columns:minmax(0,1fr)}
+.supply-form>*{min-width:0}
+.supply-form select,.supply-form input{width:100%;max-width:100%}
+}
