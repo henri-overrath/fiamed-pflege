@@ -155,3 +155,6 @@ body.glove .tour-card-actions button:not(.icon-btn){flex:1 1 100%}
 .app-reminder-actions{display:flex;gap:8px;flex-wrap:wrap}
 .app-reminder-actions .btn{flex:1 1 140px}
 @media(min-width:761px){.app-reminder{bottom:24px}}
+
+#patients .patient-row{cursor:pointer;transition:.15s}#patients .patient-row:hover{border-color:var(--blue);background:var(--blue-soft)}
+.row-chevron{margin-left:auto;font-size:26px;line-height:1;color:var(--muted);padding:0 6px}
