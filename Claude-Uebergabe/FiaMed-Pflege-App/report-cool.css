@@ -63,3 +63,7 @@ table.rc-table tr:last-child td{border-bottom:0}
 .rc-long{margin-top:4px;display:inline-block;background:#fdf3dc;color:#8a5a00;font-size:12px;border-radius:8px;padding:2px 8px}
 body.dark .rc-long{background:#3a3016;color:#f0b83e}
 .form-error{color:#ed5565;font-size:14px;margin:0;min-height:1.4em}
+
+.rc-month{border:1px solid var(--line);border-radius:14px;margin:8px 0;padding:4px 12px;background:var(--card)}
+.rc-month>summary{cursor:pointer;font-weight:700;padding:10px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rc-month[open]>summary{border-bottom:1px solid var(--line);margin-bottom:6px}
