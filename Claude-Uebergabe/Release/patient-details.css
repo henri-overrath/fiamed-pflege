@@ -214,3 +214,31 @@ body.glove .mobile-nav button{font-size:clamp(10px,2.9vw,12px);padding:6px 2px}
 .day-closed{display:flex;flex-direction:column;gap:2px;background:#e5f6ec;color:#16754a;border:1px solid #bfe6cd;border-radius:16px;padding:12px 16px;margin-top:14px}
 body.dark .day-closed{background:#17372c;color:#7fe0b0;border-color:#2a5a46}
 .day-closed span{font-size:13px}.day-reopen{margin-top:10px}
+
+/* Feinschliff */
+.form-grid label:has(>input[type=checkbox]){display:flex;flex-direction:row;align-items:center;gap:10px}
+.form-grid label:has(>input[type=checkbox]) input{flex:none;width:20px;height:20px}
+@media(max-width:560px){
+#materialsList .material-item{flex-wrap:wrap;gap:8px}
+#materialsList .material-item>b{flex:1 1 100%}
+#materialsList .material-item .row-actions{flex-wrap:wrap;gap:6px}
+}
+
+/* Dunkelmodus: keine hellen „weißen“ Flächen mehr */
+body.dark .welcome-hero{background:linear-gradient(130deg,#1d2b3a 0%,#1a2533 60%,#222a38 100%);box-shadow:0 22px 55px rgba(0,0,0,.35)}
+body.dark .welcome-hero:before{background:#ffffff10}
+body.dark .welcome-hero:after{color:#ffffff10}
+body.dark .welcome-hero h1,body.dark .welcome-hero .home-date{color:var(--ink)}
+body.dark .welcome-hero p{color:var(--muted)}
+body.dark .day-choice.active,body.dark .day-choice:hover{background:var(--blue-soft);border-color:var(--blue);box-shadow:0 16px 28px rgba(0,0,0,.3)}
+body.dark .celebration{background:linear-gradient(120deg,#33300f,#173a2b);border-color:#2a5a46;color:var(--ink)}
+body.dark .tour-card.done{background:linear-gradient(135deg,#17312a,#14281f);border-color:#2a5a46}
+body.dark .report-supply{background:var(--card)}
+body.dark .report-supply h2,body.dark .report-supply label{color:var(--ink)}
+/* Kopfzeilen mit mehreren Knöpfen dürfen auf dem Handy umbrechen */
+@media(max-width:760px){.page-head{flex-wrap:wrap}.page-head .btn{white-space:normal}}
+body.dark .status{background:#243349;color:var(--muted)}
+body.dark .status.done{background:#17372c;color:#7fe0b0}
+body.dark .status.active{background:#3a3016;color:#f0b83e}
+body.dark .tour-card-actions .visit-done{background:#17372c;color:#7fe0b0;border-color:#2a5a46}
+body.dark .reminder{background:#3a3016;color:#f0b83e;border-color:#5a4a1e}
