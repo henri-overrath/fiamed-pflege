@@ -639,10 +639,13 @@ body{margin:0;background:var(--bg);font:15px/1.55 -apple-system,BlinkMacSystemFo
     const d=$('#modal');d.showModal();$('#closeModal').onclick=()=>d.close();
   }
   function openReportsTable(){
+    let lastMonth='';
     const rows=(state.reports||[]).map(r=>{
+      const monthLabel=new Date(r.at).toLocaleDateString('de-DE',{month:'long',year:'numeric'});
+      const monthRow=monthLabel!==lastMonth?`<tr class="rc-month-row"><th colspan="6">📁 ${esc(monthLabel)}</th></tr>`:'';lastMonth=monthLabel;
       const dateStr=new Date(r.at).toLocaleDateString('de-DE');
       const hasData=Array.isArray(r.patients);
-      return `<tr><td>${dateStr}</td><td>${hasData?r.patients.length:'–'}</td><td>${hasData?(esc(r.patients.map(p=>p.name).join(', '))||'–'):'–'}</td><td>${hasData?Number(r.km||0).toFixed(1)+' km':'–'}</td><td>${hasData?fmt(r.worktime||0):'–'}</td><td>${hasData&&r.reorder?.length?esc(r.reorder.map(g=>g.quantity+'× '+g.name).join('; ')):'–'}</td></tr>`;
+      return `${monthRow}<tr><td>${dateStr}</td><td>${hasData?r.patients.length:'–'}</td><td>${hasData?(esc(r.patients.map(p=>p.name).join(', '))||'–'):'–'}</td><td>${hasData?Number(r.km||0).toFixed(1)+' km':'–'}</td><td>${hasData?fmt(r.worktime||0):'–'}</td><td>${hasData&&r.reorder?.length?esc(r.reorder.map(g=>g.quantity+'× '+g.name).join('; ')):'–'}</td></tr>`;
     }).join('')||'<tr><td colspan="6" class="rc-empty">Noch keine Tagesberichte gespeichert.</td></tr>';
     $('#modalContent').innerHTML=`<div class="modal-inner modal-form"><h2>📊 Alle Tagesberichte</h2><p>Zum Weiterschicken an die Chefin, z. B. als Screenshot.</p><div class="rc-table-wrap"><table class="rc-table"><thead><tr><th>Datum</th><th>Besuche</th><th>Patienten</th><th>Kilometer</th><th>Arbeitszeit</th><th>Material zur Nachbestellung</th></tr></thead><tbody>${rows}</tbody></table></div><div class="modal-actions"><button type="button" id="closeModal" class="btn secondary">Schließen</button></div></div>`;
     const d=$('#modal');d.showModal();$('#closeModal').onclick=()=>d.close();

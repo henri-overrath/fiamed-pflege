@@ -67,3 +67,5 @@ body.dark .rc-long{background:#3a3016;color:#f0b83e}
 .rc-month{border:1px solid var(--line);border-radius:14px;margin:8px 0;padding:4px 12px;background:var(--card)}
 .rc-month>summary{cursor:pointer;font-weight:700;padding:10px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .rc-month[open]>summary{border-bottom:1px solid var(--line);margin-bottom:6px}
+
+.rc-table .rc-month-row th{background:var(--blue-soft);color:var(--blue);text-align:left;font-size:14px;padding:10px 12px;position:sticky;left:0}
