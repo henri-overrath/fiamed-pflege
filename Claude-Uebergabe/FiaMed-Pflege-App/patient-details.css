@@ -187,3 +187,7 @@ body.glove .mobile-nav button{font-size:clamp(10px,2.9vw,12px);padding:6px 2px}
 .supply-form>*{min-width:0}
 .supply-form select,.supply-form input{width:100%;max-width:100%}
 }
+
+.note-archive{grid-column:1/-1;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:6px 0;background:var(--card)}.note-archive h3{margin:0 0 6px;font-size:15px}.empty-note{margin:0;color:var(--muted);font-size:13px}
+.na-entry{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line)}.na-entry p{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}.na-entry b{font-size:13px;color:var(--muted)}
+#archiveGeneralNote{margin:-4px 0 8px;justify-self:start}
