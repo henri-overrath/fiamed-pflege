@@ -1,0 +1,50 @@
+/* team-rollen.css — Rolle (Chefin/Fachkraft) und der Einblick aus der Rückmeldung.
+   Gehört zu Stufe 1 + 2 des Tourenaustauschs; nutzt die Farbvariablen aus styles.css,
+   damit Hell- und Dunkelmodus ohne Extraregeln stimmen. */
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Kurzer Status hinter dem Patientennamen in der Tagesplanung der Chefin. */
+.feedback-chip {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.feedback-chip.done {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+.feedback-chip.open {
+  background: var(--line);
+  color: var(--muted);
+}
+
+/* Zusammenfassung über der Patientenliste: Wann kam die Rückmeldung, wie viel ist erledigt. */
+.feedback-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+}
+.feedback-panel p {
+  margin: 0;
+  font-size: 14px;
+}
+.feedback-panel small {
+  color: var(--muted);
+}
