@@ -223,7 +223,7 @@ $('#woundCompareBtn')?.addEventListener('click',()=>{const ids=selectedWoundIds(
     };
   }
   function setup(){renderNav();let back=$('.drawer-backdrop');if(!back){back=document.createElement('div');back.className='drawer-backdrop';document.body.append(back)}const close=()=>{$('.sidebar').classList.remove('open');back.classList.remove('show')};document.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(b){show(b.dataset.view);close()}if(e.target.id==='menuToggle'){$('.sidebar').classList.add('open');back.classList.add('show')}if(e.target.closest('#homeShortcut')){show('home');close()}if(e.target===back)close();if(e.target.closest('#reportBug')){location.href='mailto:henri.overrath@gmail.com?subject='+encodeURIComponent('FiaMed Pflege – Problem melden')+'&body='+encodeURIComponent('Bitte kurz beschreiben, was nicht funktioniert:\n\n');close()}if(e.target.closest('#sidebarPilot')){pilotOpen();close()}if(e.target.closest('#openPilot'))pilotOpen();if(e.target.matches('[data-open]')){openPatient(state.patients.find(p=>p.id===e.target.closest('[data-open]').dataset.open));$('#searchResults').hidden=true}if(e.target.id==='tourToggle'){if(state.tourStartedAt)endDayFlow();else openTourPrepare()}if(e.target.id==='homeTheme'||e.target.id==='themeToggle'){state.theme=document.body.classList.contains('dark')?'light':'dark';theme();save('Darstellung geändert')}});$('#globalSearch').oninput=e=>globalSearch(e.target.value)}
-  ensureHomePlanning();upgradeState();theme();setup();renderPilot();renderAll();updateTourProgress();migrateWoundPhotosToStore();askRoleIfUnset();setInterval(()=>{document.querySelectorAll('.work-time').forEach(x=>x.textContent=fmt(Math.max(0,secs()-pauseSeconds())));updateTourProgress()},1000);
+  ensureHomePlanning();upgradeState();theme();setup();askRoleIfUnset();renderPilot();renderAll();updateTourProgress();migrateWoundPhotosToStore();setInterval(()=>{document.querySelectorAll('.work-time').forEach(x=>x.textContent=fmt(Math.max(0,secs()-pauseSeconds())));updateTourProgress()},1000);
   function renderPlan(){
     const suggestions=state.patients.filter(p=>!p.archived&&recurringForToday(p)&&!p.selected);
     const list=active().filter(p=>!p.archived).sort((a,b)=>a.order-b.order);
@@ -870,10 +870,18 @@ body{margin:0;background:var(--bg);font:15px/1.55 -apple-system,BlinkMacSystemFo
     if(!roleAllows(document.querySelector('.view.active')?.id||'home'))show('home');
     toast(`Eingerichtet als ${roleLabel()}${clean?` (${clean})`:''}`);
   }
-  function askRoleIfUnset(){if(!state.profile?.role)openRoleModal(true)}
+  function askRoleIfUnset(){
+    if(state.profile?.role)return;
+    // Ein Fehler hier darf den restlichen Start nicht mitreißen: Bleibt die Rolle
+    // ungesetzt, fragt die App beim nächsten Start einfach wieder.
+    try{
+      if($('#modal')?.open)return;
+      openRoleModal(true);
+    }catch(err){console.error('Rollenfrage konnte nicht geöffnet werden',err)}
+  }
   function openRoleModal(first=false){
     const p=state.profile||{};
-    $('#modalContent').innerHTML=`<form id="roleForm" class="modal-inner modal-form"><div class="section-head"><div><h2>${first?'Willkommen bei FiaMed':'Rolle ändern'}</h2><p>Wer arbeitet auf diesem Gerät? Danach zeigt die App nur noch, was zu dieser Aufgabe gehört.</p></div></div><div class="form-grid"><label class="full">Rolle<select name="role" class="select"><option value="fachkraft" ${p.role!=='chefin'?'selected':''}>Fachkraft – Tour laufen und dokumentieren</option><option value="chefin" ${p.role==='chefin'?'selected':''}>Chefin – Touren planen und zuteilen</option></select></label><label class="full">Mein Name <small>(erscheint beim Senden, damit die andere Seite weiß, von wem die Nachricht kommt)</small><input name="name" value="${esc(p.name||state.settings.caregiver||'')}" placeholder="Vorname genügt"></label></div><p class="hint">Das ist nur eine Ansichts-Einstellung: Sie lässt sich hier jederzeit wieder ändern und ersetzt keine Gerätesperre.</p><div class="modal-actions">${first?'':'<button type="button" id="closeModal" class="btn secondary">Abbrechen</button>'}<button class="btn">Übernehmen</button></div></form>`;
+    $('#modalContent').innerHTML=`<form id="roleForm" class="modal-inner modal-form"><div class="section-head"><div><h2>${first?'Willkommen bei FiaMed':'Rolle ändern'}</h2><p>Wer arbeitet auf diesem Gerät? Danach zeigt die App nur noch, was zu dieser Aufgabe gehört.</p></div></div><div class="form-grid"><label class="full">Rolle<select name="role" class="select"><option value="fachkraft" ${p.role!=='chefin'?'selected':''}>Fachkraft – Tour laufen und dokumentieren</option><option value="chefin" ${p.role==='chefin'?'selected':''}>Chefin – Touren planen und zuteilen</option></select></label><label class="full">Mein Name <small>(erscheint beim Senden, damit die andere Seite weiß, von wem die Nachricht kommt)</small><input name="name" value="${esc(p.name||state.settings.caregiver||'')}" placeholder="Vorname genügt" ${first?'required':''}></label></div><p class="hint">Das ist nur eine Ansichts-Einstellung: Sie lässt sich hier jederzeit wieder ändern und ersetzt keine Gerätesperre.</p><div class="modal-actions">${first?'':'<button type="button" id="closeModal" class="btn secondary">Abbrechen</button>'}<button class="btn">Übernehmen</button></div></form>`;
     const d=$('#modal');d.showModal();
     if(!first)$('#closeModal').onclick=()=>d.close();
     $('#roleForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);d.close();setRole(String(f.get('role')||'fachkraft'),f.get('name'))};
