@@ -19,12 +19,24 @@
   font-weight: 600;
   white-space: nowrap;
 }
+/* Nicht `var(--blue)` auf `var(--blue-soft)`: Die beiden Variablen sind im Hellmodus weit
+   auseinander, im Dunkelmodus aber beide blau — der Chip kam dort auf 2,55:1 Kontrast
+   (nötig sind 4,5:1 bei 12px). Deshalb feste Werte, je Modus gemessen:
+   hell 5,25:1, dunkel 5,61:1 — etwa so viel wie die `.status`-Pillen der App (5,42:1). */
 .feedback-chip.done {
   background: var(--blue-soft);
-  color: var(--blue);
+  color: #1f5bd6;
 }
+body.dark .feedback-chip.done {
+  color: #8cb4ff;
+}
+/* Dasselbe beim grauen Chip: `var(--muted)` auf `var(--line)` ergibt im Hellmodus nur
+   3,35:1. Im Dunkelmodus passt die Kombination (4,96:1) und bleibt deshalb stehen. */
 .feedback-chip.open {
   background: var(--line);
+  color: #556377;
+}
+body.dark .feedback-chip.open {
   color: var(--muted);
 }
 
