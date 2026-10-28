@@ -152,7 +152,8 @@ Senden, ein Tipp zum Empfangen.
 - Vollständig getestet (Verschlüsselung/Entschlüsselung, falsches Codewort, ungültiger Text,
   Namensabgleich, automatisches Anlegen, Überschreib-Schutz) — Details siehe Commit-Historie
   zu diesem Feature (`git log --oneline --all --grep=Tourenpaket` bzw. `--grep=Tourenaustausch`).
-- Cache-Version in `service-worker.js` wurde für dieses Feature bereits auf `v20` erhöht.
+- Cache-Version in `service-worker.js` wurde für dieses Feature erhöht. **Die Zahl wächst mit
+  jeder Änderung weiter — immer den aktuellen Wert in der Datei ablesen, nicht hier.**
 
 ## 👤 Rollen + Rückmeldung an die Chefin (seit 28.10.2026)
 
@@ -212,7 +213,7 @@ Patientennamen als Startbelegung im Code (`const names=[...]` in `app.js`). Die 
 22.08.2026 entfernt UND die komplette Git-Historie wurde bereinigt (`git filter-repo`,
 danach Force-Push) — deshalb stimmen alte Commit-Hashes aus früheren Notizen nicht mehr.
 
-## 🩹 Wundfotos (geplant, siehe PLAN-HENRI.md)
+## 🩹 Wundfotos (gebaut; Leitplanken gelten weiter)
 
 Die Tante möchte Wundfotos direkt am Patienten speichern und gebündelt drucken/versenden
 können — ein echter Wunsch aus ihrem Arbeitsalltag, kein Extra. DSGVO-technisch geprüft
@@ -220,10 +221,15 @@ können — ein echter Wunsch aus ihrem Arbeitsalltag, kein Extra. DSGVO-technis
 
 - **Mehrere Fotos pro Patient**, nicht nur eins — für Verlaufsdokumentation. Jedes Foto
   bekommt automatisch Datum/Uhrzeit, optional eine kurze Notiz.
-- **Vor dem Speichern verkleinern** (z. B. max. 1600px lange Kante) — sonst wird der
-  Browser-Speicher (Limit meist 5–10 MB) schnell knapp, besonders mit mehreren Patienten.
-- **Speicherung selbst ist bereits gelöst:** Fotos landen im normalen `state`-Objekt und
-  werden dadurch automatisch von `lock.js` mitverschlüsselt — dafür muss nichts Neues gebaut werden.
+- **Vor dem Speichern verkleinern** — aktuell **max. 2400px lange Kante** (`resizeImage`
+  in `app.js`). Die frühere Grenze von 1600px kam vom localStorage-Limit (5–10 MB); seit die
+  Fotos in der IndexedDB liegen, gilt die nicht mehr. 2400px sind gewählt, damit ein Foto auf
+  einer halben A4-Seite noch sauber druckt (~1750×2480px bei 300 dpi).
+- **Speicherort (seit 17.09.2026):** Fotos liegen **nicht** mehr im `state`-Objekt, sondern in
+  einer eigenen verschlüsselten IndexedDB — geschrieben über `FiaLock.putPhoto(id, dataUrl)`,
+  gelesen über `loadPhotoCache()`. Alte Installationen zieht `migrateWoundPhotosToStore()`
+  beim Start einmalig um. Im `state` steht pro Foto nur noch die Verwaltungsangabe
+  (`id`, `at`, `note`), nie das Bild selbst.
 - **Vor dem Teilen immer ein Warnhinweis**, bevor sich die native Teilen-Auswahl öffnet:
   Wundfotos sind besonders sensible Gesundheitsdaten, private WhatsApp ist dafür beruflich
   ungeeignet (Metadaten gehen an Meta/USA). Die App darf den Kanal nicht hart sperren
@@ -259,7 +265,8 @@ können — ein echter Wunsch aus ihrem Arbeitsalltag, kein Extra. DSGVO-technis
 ## Technische Fallen in diesem Projekt
 
 - **`app.js` enthält viele Funktionen mehrfach.** Historisch gewachsen — `setup` steht 8×,
-  `show`/`renderReports`/`endVisit`/`ask` je 6×, `renderPlan`/`renderAll`/`printReport` je 5× drin.
+  `endVisit` 7×, `show`/`renderReports`/`ask`/`renderAll` je 6×, `renderPlan`/`printReport` je 5×
+  (Stand 28.10.2026 — die Zahlen wachsen weiter, im Zweifel kurz selbst nachzählen).
   In JavaScript gewinnt **die letzte** Definition in der Datei. **Immer zuerst die letzte
   Definition suchen**, sonst ändert man Code, der gar nicht mehr läuft.
 - **Zwei Ordner mit demselben Code:** `Claude-Uebergabe/FiaMed-Pflege-App/` ist der
