@@ -158,3 +158,5 @@ body.glove .tour-card-actions button:not(.icon-btn){flex:1 1 100%}
 
 #patients .patient-row{cursor:pointer;transition:.15s}#patients .patient-row:hover{border-color:var(--blue);background:var(--blue-soft)}
 .row-chevron{margin-left:auto;font-size:26px;line-height:1;color:var(--muted);padding:0 6px}
+
+.wound-when{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px}.wound-when label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}.wound-when input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}.wound-when-hint{display:block;color:var(--muted);margin-bottom:10px}
