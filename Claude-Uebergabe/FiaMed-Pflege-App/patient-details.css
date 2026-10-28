@@ -203,3 +203,9 @@ body.glove .mobile-nav button{font-size:clamp(10px,2.9vw,12px);padding:6px 2px}
 .pl-size{text-align:center;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
 .pl-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.pl-chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:8px 14px;font:inherit;font-size:14px;cursor:pointer}
 .pl-all{display:flex;gap:8px;align-items:center;font-size:14px}
+
+/* Bericht-Druckansicht in der App mit Zurück-Knopf */
+.report-overlay{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.report-overlay-bar{display:flex;gap:10px;justify-content:space-between;padding:10px max(12px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line);background:var(--card)}
+.report-overlay iframe{flex:1;width:100%;border:0;background:#fff}
+@media print{.report-overlay-bar{display:none}}
