@@ -60,3 +60,20 @@ body.dark .feedback-chip.open {
 .feedback-panel small {
   color: var(--muted);
 }
+
+/* Testmodus (Entwickler): unübersehbares Band, damit niemand Test- und echte Daten verwechselt. */
+#devBanner {
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+  padding: 6px 12px;
+  background: #e8710a;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  text-align: center;
+  letter-spacing: .02em;
+}
+.dev-panel {
+  border: 2px dashed #e8710a;
+}
