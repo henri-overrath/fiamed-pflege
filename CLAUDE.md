@@ -186,6 +186,17 @@ auf wessen Handy sie läuft, und der Weg funktioniert in **beide** Richtungen.
   ergibt „Cannot access … before initialization", und die App startet leer. Solche Listen also
   in die Funktion schreiben.
 
+## 🧪 Testmodus für Henri (seit 31.10.2026)
+
+Damit Henri die App selbst ausprobieren kann, ohne dass Testpatienten bei Tante/Chefin landen:
+Einstellungen → „🧪 Testmodus starten“ (Web-Version sichtbar; in der nativen App erst nach
+5× Tippen auf „Meine Rolle“). Vier Riegel: **eigener Speicher** (`fiamed-pflege-test-v1`, echte
+Daten unsichtbar), **eigene Test-Codewörter** (vorbelegt), **`test:true` im Paket** (falsche Seite
+lehnt ab), **Export/Import-Dateien mit `devMode`** werden zwischen den Welten abgelehnt. Oranges
+Band „TESTMODUS“ oben. Rolle „Entwickler (Test)“ sieht alles; Chefin-/Fachkraft-Ansicht bleiben
+wählbar. Code: `devInit`/`devPanel`/`seedTestData`/`refuseWrongMode` am Ende von `app.js`.
+`lock.js`/`share.js` unverändert. Beim Testen gilt: nur erfundene Namen (Regel 1).
+
 ## 🧠 Fia (früher „PflegePilot“) lernt dazu (seit 17.10.2026)
 
 Der Assistent heißt jetzt **Fia**. Er merkt sich, was man ihm beibringt („Ich heiße …“,
