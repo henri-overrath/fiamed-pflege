@@ -233,7 +233,7 @@ body.dark .welcome-hero p{color:var(--muted)}
 body.dark .day-choice.active,body.dark .day-choice:hover{background:var(--blue-soft);border-color:var(--blue);box-shadow:0 16px 28px rgba(0,0,0,.3)}
 body.dark .celebration{background:linear-gradient(120deg,#33300f,#173a2b);border-color:#2a5a46;color:var(--ink)}
 body.dark .tour-card.done{background:linear-gradient(135deg,#17312a,#14281f);border-color:#2a5a46}
-body.dark body.dark /* Kopfzeilen mit mehreren Knöpfen dürfen auf dem Handy umbrechen */
+/* Kopfzeilen mit mehreren Knöpfen dürfen auf dem Handy umbrechen */
 @media(max-width:760px){.page-head{flex-wrap:wrap}.page-head .btn{white-space:normal}}
 body.dark .status{background:#243349;color:var(--muted)}
 body.dark .status.done{background:#17372c;color:#7fe0b0}
@@ -258,3 +258,11 @@ body.dark .reminder{background:#3a3016;color:#f0b83e;border-color:#5a4a1e}
 .pv-zoom{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:8px}.pv-zoom .pv-btn{width:46px;height:46px;padding:0;font-size:22px}
 .pv-hint{position:absolute;left:0;right:0;bottom:10px;text-align:center;color:#ffffffb0;font-size:12px;pointer-events:none;transition:opacity .4s}
 .pv-foot{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:12px;padding-bottom:max(12px,env(safe-area-inset-bottom,0px));background:rgba(0,0,0,.65)}.pv-foot .pv-btn{flex:1 1 140px;max-width:240px}
+
+/* Das HTML-Attribut „hidden“ muss immer gewinnen (sonst zeigen Suchfelder in Patienten- und Materialliste nichts weg, weil .patient-row/.material-item display:flex haben) */
+[hidden]{display:none!important}
+
+/* Dunkelmodus: restliche helle Stellen */
+body.dark .home-date{background:#ffffff14;color:var(--ink)}
+body.dark .callout{background:var(--blue-soft);color:var(--muted)}
+body.dark .btn.danger,body.dark #deleteLatestReport{background:#3a1f26;color:#ff9aa6;border-color:#5a2a34}
