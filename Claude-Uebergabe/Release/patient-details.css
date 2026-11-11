@@ -233,12 +233,17 @@ body.dark .welcome-hero p{color:var(--muted)}
 body.dark .day-choice.active,body.dark .day-choice:hover{background:var(--blue-soft);border-color:var(--blue);box-shadow:0 16px 28px rgba(0,0,0,.3)}
 body.dark .celebration{background:linear-gradient(120deg,#33300f,#173a2b);border-color:#2a5a46;color:var(--ink)}
 body.dark .tour-card.done{background:linear-gradient(135deg,#17312a,#14281f);border-color:#2a5a46}
-body.dark .report-supply{background:var(--card)}
-body.dark .report-supply h2,body.dark .report-supply label{color:var(--ink)}
-/* Kopfzeilen mit mehreren Knöpfen dürfen auf dem Handy umbrechen */
+body.dark body.dark /* Kopfzeilen mit mehreren Knöpfen dürfen auf dem Handy umbrechen */
 @media(max-width:760px){.page-head{flex-wrap:wrap}.page-head .btn{white-space:normal}}
 body.dark .status{background:#243349;color:var(--muted)}
 body.dark .status.done{background:#17372c;color:#7fe0b0}
 body.dark .status.active{background:#3a3016;color:#f0b83e}
 body.dark .tour-card-actions .visit-done{background:#17372c;color:#7fe0b0;border-color:#2a5a46}
 body.dark .reminder{background:#3a3016;color:#f0b83e;border-color:#5a4a1e}
+
+/* „Nachbestellung teilen“-Bereich sieht aus wie der Block „Material zum Nachbestellen“ im Tagesbericht */
+.report-supply{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:14px 0;box-shadow:none}
+.report-supply h2{margin:0 0 4px;font-size:11.5px;color:var(--blue);text-transform:uppercase;letter-spacing:.04em;font-weight:800}
+.report-supply .section-head p{margin:0;font-size:12.5px;color:var(--muted)}
+.report-supply .supply-list ul{margin:10px 0 0;padding-left:16px;font-size:13.5px}.report-supply .supply-list li{margin:3px 0}
+.report-supply .supply-list p{margin:10px 0 0;font-size:13.5px;color:var(--muted)}
