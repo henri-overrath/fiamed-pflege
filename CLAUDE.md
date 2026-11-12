@@ -186,6 +186,16 @@ auf wessen Handy sie läuft, und der Weg funktioniert in **beide** Richtungen.
   ergibt „Cannot access … before initialization", und die App startet leer. Solche Listen also
   in die Funktion schreiben.
 
+### Fachkräfte-Profile für die Chefin (seit 12.11.2026)
+
+Menü ☰ → „👥 Fachkräfte“ (nur Chefin-/Entwickler-Seite): Liste aller Fachkräfte, von denen eine
+Rückmeldung eingegangen ist, und pro Fachkraft ein **Profil** (Besuche/Kilometer/Ø Dauer der letzten
+7 Tage, Patienten, Tage mit erledigt/offen, Uhrzeit, Material, Notiz). Daten: `state.tourFeedbackLog`
+(Verlauf je Fachkraft und Tag, wird in `applyReceivedFeedback` mitgeschrieben); `state.tourFeedback[date]`
+bleibt wie vorher (die Tagesplanung liest weiter daraus), alte Rückmeldungen erscheinen über
+`feedbackLog()` ebenfalls. **Bewusst keine Wundfotos** — die Frage, ob Fotos zur Chefin übertragen
+werden dürfen, liegt als GitHub-Issue #101 bei Papa.
+
 ## 🧪 Testmodus für Henri (seit 31.10.2026)
 
 Damit Henri die App selbst ausprobieren kann, ohne dass Testpatienten bei Tante/Chefin landen:
