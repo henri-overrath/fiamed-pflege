@@ -225,6 +225,9 @@ Fia versteht außerdem freie Bitten („Kannst du mir bitte die Statistik zeigen
 **Diktieren (🎤 neben „Senden“):** Web-Speech-API des Browsers (`pilotDictate`). ⚠️ Je nach Gerät geht die Sprache dafür
 zur Erkennung ins Internet (Chrome/Android: Google, iPhone: Apple) — deshalb einmaliger Warnhinweis vorher, nur im Chat-Eingabefeld,
 nichts wird gespeichert. **Papa bitte entscheiden (Regel 2)**; in der nativen App fehlen dafür ggf. Mikrofon-/Spracherkennungs-Berechtigungen.
+**Vorlesen (🔊 an jeder Antwort, Schalter „Vorlesen: an/aus“ im Fia-Kopf, Standard aus):** Sprachausgabe des Geräts
+(`pilotSpeak`), bewusst **nur Stimmen mit `localService`** (kein Internet); gibt es keine deutsche lokale Stimme, sagt Fia das.
+Gemerkt in `state.pilotMemory.autoSpeak`.
 Dazu etwas Smalltalk (`pilotSmallTalk`) und bei Unbekanntem ein konkreter Lernvorschlag. Weiter lokal, ohne Internet.
 
 **„✨ Cooler machen“** (Knopf in Fias Kopfzeile) wählt den Ton: Ernst (ohne Emojis), Freundlich, Locker.
