@@ -419,7 +419,24 @@ $('#woundCompareBtn')?.addEventListener('click',()=>{const ids=selectedWoundIds(
     return {id:hit[0],label:hit[1]};
   }
   /* Vorlesen (Sprachausgabe des Geräts). Es werden NUR Stimmen benutzt, die auf dem Gerät liegen (localService), damit nichts ins Internet geht. */
-  function pilotSpeakText(t){return String(t).replace(/\p{Extended_Pictographic}️?‍?/gu,'').replace(/[„“”]/g,'"').replace(/\s*\|\s*/g,'. ').replace(/\s+/g,' ').trim()}
+  /* Text fürs Vorlesen säubern: keine Emojis, keine Sonderzeichen und keine (unsichtbaren) Leerzeichen-Zeichen, die die Stimme sonst „vorliest“. */
+  function pilotSpeakText(t){
+    return String(t)
+      .replace(/[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]/g,' ')
+      .replace(/[\u200b-\u200f\u2028\u2029\u2060\ufeff\ufe0e\ufe0f]/g,'')
+      .replace(/\p{Extended_Pictographic}/gu,'')
+      .replace(/(\d)\s*[×x]\s*(?=\S)/g,'$1 mal ')
+      .replace(/[„“”"'‚‘’«»]/g,'')
+      .replace(/[|•·▪◦●○■□▶►→➡⇒✓✔✗✘★☆]/g,' , ')
+      .replace(/[–—]/g,', ')
+      .replace(/\n+/g,'. ')
+      .replace(/\s+/g,' ')
+      .replace(/(\s*[,.]){2,}/g,'.')
+      .replace(/\s+([,.!?])/g,'$1')
+      .replace(/([:;,])\s*\./g,'$1')
+      .replace(/^[\s,.;:]+/,'')
+      .trim();
+  }
   function pilotVoice(){const vs=(window.speechSynthesis&&speechSynthesis.getVoices())||[];const de=vs.filter(v=>/^de([-_]|$)/i.test(v.lang)&&v.localService);return de.find(v=>/anna|helena|petra|katja|marlene/i.test(v.name))||de[0]||null}
   function pilotSpeak(text){
     if(!window.speechSynthesis){toast('Vorlesen geht auf diesem Gerät nicht.');return}
