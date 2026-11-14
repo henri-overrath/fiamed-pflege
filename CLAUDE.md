@@ -186,6 +186,16 @@ auf wessen Handy sie läuft, und der Weg funktioniert in **beide** Richtungen.
   ergibt „Cannot access … before initialization", und die App startet leer. Solche Listen also
   in die Funktion schreiben.
 
+### Fachkräfte-Profile für die Chefin (seit 12.11.2026)
+
+Menü ☰ → „👥 Fachkräfte“ (nur Chefin-/Entwickler-Seite): Liste aller Fachkräfte, von denen eine
+Rückmeldung eingegangen ist, und pro Fachkraft ein **Profil** (Besuche/Kilometer/Ø Dauer der letzten
+7 Tage, Patienten, Tage mit erledigt/offen, Uhrzeit, Material, Notiz). Daten: `state.tourFeedbackLog`
+(Verlauf je Fachkraft und Tag, wird in `applyReceivedFeedback` mitgeschrieben); `state.tourFeedback[date]`
+bleibt wie vorher (die Tagesplanung liest weiter daraus), alte Rückmeldungen erscheinen über
+`feedbackLog()` ebenfalls. **Bewusst keine Wundfotos** — die Frage, ob Fotos zur Chefin übertragen
+werden dürfen, liegt als GitHub-Issue #101 bei Papa.
+
 ## 🧪 Testmodus für Henri (seit 31.10.2026)
 
 Damit Henri die App selbst ausprobieren kann, ohne dass Testpatienten bei Tante/Chefin landen:
@@ -206,6 +216,19 @@ von `lock.js` mitverschlüsselt). **Kein Internet, keine KI-Schnittstelle, keine
 Fia wiederholt nur, was man ihm selbst gesagt hat. Henri hat Patientennamen im Gedächtnis ausdrücklich
 erlaubt, weil nichts das Gerät verlässt; Papa bitte gegenchecken. Im Code: `ask()` (Lernen) ruft
 `askBasic()` (die alten Stichwort-Antworten) auf.
+
+**Regeln lernen (seit 14.11.2026):** „Wenn ich 123 sage, dann öffne den Tagesbericht“ legt einen Auslöser an;
+beim nächsten „123“ führt Fia die Aktion über seine eigenen Stichwort-Antworten (`askBasic`) aus. Mit
+„… dann antworte …“ gibt er einen festen Text zurück. Gespeichert in `state.pilotMemory.qa` (`cmd:true` = Aktion).
+Fia versteht außerdem freie Bitten („Kannst du mir bitte die Statistik zeigen?“, „geh zu den Einstellungen“,
+„Wenn ich jetzt sage, sollst du die Patientenliste öffnen“ → wird gleich ausgeführt) über `pilotNavTarget`/`pilotUnwrap`/`pilotRun`.
+**Diktieren (🎤 neben „Senden“):** Web-Speech-API des Browsers (`pilotDictate`). ⚠️ Je nach Gerät geht die Sprache dafür
+zur Erkennung ins Internet (Chrome/Android: Google, iPhone: Apple) — deshalb einmaliger Warnhinweis vorher, nur im Chat-Eingabefeld,
+nichts wird gespeichert. **Papa bitte entscheiden (Regel 2)**; in der nativen App fehlen dafür ggf. Mikrofon-/Spracherkennungs-Berechtigungen.
+**Vorlesen (🔊 an jeder Antwort, Schalter „Vorlesen: an/aus“ im Fia-Kopf, Standard aus):** Sprachausgabe des Geräts
+(`pilotSpeak`), bewusst **nur Stimmen mit `localService`** (kein Internet); gibt es keine deutsche lokale Stimme, sagt Fia das.
+Gemerkt in `state.pilotMemory.autoSpeak`.
+Dazu etwas Smalltalk (`pilotSmallTalk`) und bei Unbekanntem ein konkreter Lernvorschlag. Weiter lokal, ohne Internet.
 
 **„✨ Cooler machen“** (Knopf in Fias Kopfzeile) wählt den Ton: Ernst (ohne Emojis), Freundlich, Locker.
 Gespeichert in `state.pilotMemory.tone`; `pilotTone()` ändert nur die Wortwahl der Antworten.
