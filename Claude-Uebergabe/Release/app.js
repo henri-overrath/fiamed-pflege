@@ -262,7 +262,7 @@ $('#woundCompareBtn')?.addEventListener('click',()=>{const ids=selectedWoundIds(
   function printReport(text=reportText()){const w=window.open('','_blank');if(!w)return toast('Druckansicht wurde blockiert.');w.document.write(`<title>FiaMed Tagesbericht</title><pre style="max-width:800px;margin:40px auto;padding:36px;font:15px/1.6 system-ui;white-space:pre-wrap;color:#172033">${esc(text)}</pre>`);w.document.close();w.focus();w.print()}
 
   /* Fia – finale, lokale Assistenzschicht mit Bestätigung vor Änderungen */
-  function pilotMessage(text,kind='assistant',extra=''){const chat=$('#pilotChat');if(!chat)return;if(kind==='assistant')text=pilotTone(text);chat.insertAdjacentHTML('beforeend','<div class="chat-message '+kind+'">'+esc(text)+extra+'</div>');chat.scrollTop=chat.scrollHeight}
+  function pilotMessage(text,kind='assistant',extra=''){const chat=$('#pilotChat');if(!chat)return;if(kind==='user'&&pilotFlags().skipUser){pilotFlags().skipUser=false;return}if(kind==='assistant')text=pilotTone(text);chat.insertAdjacentHTML('beforeend','<div class="chat-message '+kind+'">'+esc(text)+extra+'</div>');chat.scrollTop=chat.scrollHeight}
   function pilotConfirm(label,action,id=''){return '<div class="pilot-confirm" data-pilot-action="'+esc(action)+'" data-pilot-id="'+esc(id)+'"><button type="button" class="confirm" data-pilot-confirm>Ja, '+esc(label)+'</button><button type="button" class="cancel" data-pilot-cancel>Abbrechen</button></div>'}
   function renderPilot(){
     $('#pilot').innerHTML='<div class="pilot-head"><div><div class="pilot-title">🩺 Fia</div><div class="pilot-sub">Lokal · Ihre Daten bleiben auf diesem Gerät</div></div><button id="pilotCool" type="button" class="pilot-cool">✨ Cooler machen</button><button id="closePilot" class="icon-btn" aria-label="Fia schließen">×</button></div><div id="pilotChat" class="pilot-chat"><div class="pilot-welcome"><b>Hallo, ich bin Fia!</b><br>Ich helfe bei Tour, Patienten, Material und Tagesbericht und merke mir Dinge: „Ich heiße …“, „Merk dir: …“ oder „Merk dir: Frage = Antwort“. Änderungen führe ich erst nach deiner Bestätigung aus.</div></div><div class="pilot-suggestions"><button type="button" data-ask="Was fehlt heute?">👥 Was fehlt heute?</button><button type="button" data-ask="Zeige Material zum Nachbestellen">🛒 Nachbestellung</button><button type="button" data-ask="Zeige meine Tour">🚗 Meine Tour</button><button type="button" data-ask="Öffne Tagesbericht">📋 Tagesbericht</button></div><form id="pilotForm" class="pilot-form"><input id="pilotInput" autocomplete="off" placeholder="Frag mich etwas …" aria-label="Frage an Fia"><button class="btn" type="submit">Senden</button></form>';
@@ -355,7 +355,7 @@ $('#woundCompareBtn')?.addEventListener('click',()=>{const ids=selectedWoundIds(
        Nur wenn der volle Name wirklich im Satz steht (oben), wird direkt geöffnet;
        bei einem bloß erratenen Treffer wird gefragt statt gehandelt. */
     else if(p){answer='Das hab ich nicht sicher verstanden 🤔 Meinst du '+p.name+'?';confirmation=pilotConfirm(p.name+' öffnen','openPatient',p.id);}
-    else{answer='Das weiß ich noch nicht sicher. 🤔 Meinst du eins davon? Oder bring es mir bei, zum Beispiel mit „Merk dir: …“.';confirmation='<div class="pilot-suggestions"><button type="button" data-ask="Zeige meine Tour">🚗 Tour</button><button type="button" data-ask="Zeige Material zum Nachbestellen">📦 Material</button><button type="button" data-ask="Öffne Tagesbericht">📋 Bericht</button><button type="button" data-ask="Was weißt du?">🧠 Was weißt du?</button></div>'}
+    else{answer='Das weiß ich noch nicht. 🤔 Du kannst es mir beibringen: „Merk dir: '+String(q).trim().slice(0,40)+' = deine Antwort“. Oder meinst du eins davon?';confirmation='<div class="pilot-suggestions"><button type="button" data-ask="Zeige meine Tour">🚗 Tour</button><button type="button" data-ask="Zeige Material zum Nachbestellen">📦 Material</button><button type="button" data-ask="Öffne Tagesbericht">📋 Bericht</button><button type="button" data-ask="Was weißt du?">🧠 Was weißt du?</button></div>'}
     pilotMessage(answer,'assistant',confirmation);
   }
 
@@ -366,7 +366,7 @@ $('#woundCompareBtn')?.addEventListener('click',()=>{const ids=selectedWoundIds(
   function pilotMemId(){return 'm'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
   function pilotCap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
   function pilotPatientIn(text){const nt=normal(text);return state.patients.find(x=>normal(x.name)&&nt.includes(normal(x.name)))}
-  function pilotMemItems(){const m=pilotMem();return [...m.notes.map(x=>({id:x.id,text:x.text,patientId:x.patientId})),...m.qa.map(x=>({id:x.id,text:'Auf „'+x.q+'“ antworte ich: '+x.a}))]}
+  function pilotMemItems(){const m=pilotMem();return [...m.notes.map(x=>({id:x.id,text:x.text,patientId:x.patientId})),...m.qa.map(x=>({id:x.id,text:x.cmd?'Wenn du „'+x.q+'“ sagst, mache ich: '+x.a:'Auf „'+x.q+'“ antworte ich: '+x.a}))]}
   /* Ton von Fia („Cooler machen“): ernst = ohne Emojis, freundlich = wie bisher, locker = mit lockerem Schluss.
      Gespeichert in state.pilotMemory.tone; verändert nur die Wortwahl der Antworten, nie die Daten. */
   const PILOT_TONES={ernst:'👔 Ernst',freundlich:'😊 Freundlich',locker:'😎 Locker'};
@@ -374,10 +374,37 @@ $('#woundCompareBtn')?.addEventListener('click',()=>{const ids=selectedWoundIds(
   function pilotTone(text){const tone=pilotMem().tone||'freundlich';if(tone==='ernst')return String(text).replace(/\p{Extended_Pictographic}\uFE0F?\u200D?/gu,'').replace(/ +([.,!?])/g,'$1').replace(/[ \t]{2,}/g,' ').trim();if(tone==='locker'&&String(text).length<140&&!String(text).includes('\n'))return text+' '+PILOT_LOCKER[Math.floor(Math.random()*PILOT_LOCKER.length)];return text}
   function pilotCoolMenu(){pilotMessage('Wie soll ich klingen?','assistant','<div class="pilot-suggestions">'+Object.entries(PILOT_TONES).map(([k,v])=>'<button type="button" data-tone="'+k+'">'+v+'</button>').join('')+'</div>')}
   function pilotSetTone(tone){if(!PILOT_TONES[tone])return;pilotMem().tone=tone;save('Fia-Ton geändert');pilotMessage({ernst:'Verstanden. Ich antworte ab jetzt sachlich.',freundlich:'Gern! Ich bleibe freundlich. 😊',locker:'Alles klar, ich werde lockerer.'}[tone])}
+  /* kleine Merkzettel ohne const (Funktionen werden nach oben gehoben, Konstanten nicht) */
+  function pilotFlags(){return pilotFlags.o||(pilotFlags.o={})}
+  /* Smalltalk, damit Fia nicht bei jeder Alltagsfrage „weiß ich nicht“ sagt. */
+  function pilotSmallTalk(t){
+    const n=normal(t),days=Math.max(0,Math.floor((Date.now()-new Date(2026,9,17).getTime())/86400000));
+    if(/wiealtbistdu|wiealtbistdu/.test(n))return 'Ich bin ganz neu: Henri hat mich am 17.10.2026 gebaut. Heute bin ich '+days+' Tage alt. 🎂';
+    if(/wiehei(s{0,3}|ß)tdu|wasistdeinname|deinname/.test(n))return 'Ich heiße Fia, nach FiaMed. 😊';
+    if(/wowohnstdu|woherkommstdu|wobistdu/.test(n))return 'Ich wohne direkt in deinem Handy, nur in dieser App. 📱';
+    if(/bistdu(ein)?(roboter|mensch|echt|lebendig|ki)/.test(n))return 'Ich bin ein kleines Programm in der App, kein Mensch und kein Roboter. Ich lerne, was du mir beibringst. 🤖';
+    if(/(hastdu|bistdu)(hunger|muede|mude|traurig|gluecklich)/.test(n))return 'Mir geht es gut, ich brauche weder Essen noch Schlaf. 😄 Und dir?';
+    if(/gutenacht|schlafgut/.test(n))return 'Gute Nacht! 😴 Schlaf gut und bis morgen.';
+    if(/tsch(ue|u)ss?|aufwiedersehen|bisspaeter|bisbald|bismorgen|ciao/.test(n))return 'Tschüss und bis später! 👋';
+    if(/dubisttoll|dubistgut|dubistklasse|dubistsuper|dubistlieb|ichliebedich|ichmagdich/.test(n))return 'Danke, das freut mich! 😊';
+    if(/dubistdoof|dubistblod|dubistschlecht|dubistnervig/.test(n))return 'Oh, das tut mir leid. Sag mir, was ich besser machen soll, zum Beispiel mit „Merk dir: …“.';
+    if(/lieblings(essen|farbe|tier|lied)/.test(n))return 'Mein Lieblingsthema: Touren, die ruhig und gut laufen. 🚗';
+    if(/^(ja|jup|jo|ok|okay|klar|genau)[.!]*$/.test(n))return 'Alles klar! 👍 Was brauchst du?';
+    if(/^(nein|nee|nope)[.!]*$/.test(n))return 'Okay, kein Problem. 😊';
+    return null;
+  }
   function ask(q){
     const t=q.trim(),m=pilotMem();let r;
     const say=(text,extra='')=>{pilotMessage(q,'user');pilotMessage(text,'assistant',extra)};
     if(r=t.match(/^ich\s+hei(?:ß|ss)e\s+(.+?)[.!]?$/i)){m.name=pilotCap(r[1]);save('Fia hat sich einen Namen gemerkt');return say('Schön, dich kennenzulernen, '+m.name+'! 😊 Ich habe mir deinen Namen gemerkt.')}
+    /* „Wenn ich 123 sage, dann öffne den Tagesbericht“ oder „… dann antworte Hallo“: Fia lernt eine Regel (Auslöser → Aktion oder Antwort). */
+    if(r=t.match(/^(?:merk(?:e)?\s+dir[:,]?\s+)?(?:lerne[:,]?\s+)?wenn\s+ich\s+(?:sage|sag|schreibe|schreib|tippe|tipp|eingebe|frage|frag)\s*[:,]?\s*(?:„|"|“|')?(.+?)(?:“|"|”|')?\s*[,;]?\s+(?:dann|so)\s+(.+)$/i)){
+      const trigger=r[1].trim().slice(0,60);let act=r[2].trim().replace(/^(?:(?:sollst|solst|soll|sollte|musst|kannst|bitte|du|dann)\s+)+/i,'').trim().slice(0,160);
+      if(!trigger||!act)return say('Das habe ich nicht ganz verstanden. Sag es so: „Wenn ich 123 sage, dann öffne den Tagesbericht“.');
+      const ans=act.match(/^(?:antworte(?:\s+mit)?|sag(?:e)?(?:\s+mir)?|schreib(?:e)?)\s+(.+)$/i);
+      m.qa=m.qa.filter(x=>normal(x.q)!==normal(trigger));
+      m.qa.push({id:pilotMemId(),q:trigger,a:ans?ans[1].trim():act,cmd:!ans});save('Fia hat eine Regel gelernt');
+      return say(ans?'Gelernt! 🧠 Wenn du „'+trigger+'“ schreibst, antworte ich: '+ans[1].trim():'Gelernt! 🧠 Wenn du „'+trigger+'“ schreibst, mache ich: '+act+'. Probier es gleich aus!')}
     if(r=t.match(/^(?:lerne|merk(?:e)?\s+dir)[:,]?\s*(.+?)\s*=\s*(.+)$/i)){m.qa.push({id:pilotMemId(),q:r[1].trim(),a:r[2].trim()});save('Fia hat eine Antwort gelernt');return say('Gelernt! 🧠 Wenn du „'+r[1].trim()+'“ fragst, antworte ich: '+r[2].trim())}
     if(r=t.match(/^(?:merk(?:e)?\s+dir|lerne|denk\s+dran)[:,]?\s+(.+)$/i)){const pat=pilotPatientIn(r[1]);m.notes.push({id:pilotMemId(),text:pilotCap(r[1].trim()),patientId:pat?pat.id:'',at:Date.now()});save('Fia hat sich etwas gemerkt');return say('Okay, gemerkt: „'+pilotCap(r[1].trim())+'“ 🧠'+(pat?' (zu '+pat.name+')':''))}
     if(/^wie\s+hei(?:ß|ss)e\s+ich/i.test(t))return say(m.name?'Du heißt '+m.name+'. 😊':'Das weiß ich noch nicht. Sag mir: „Ich heiße …“.');
@@ -390,7 +417,8 @@ $('#woundCompareBtn')?.addEventListener('click',()=>{const ids=selectedWoundIds(
     if(/^vergiss\s+alles/i.test(t))return say('Soll ich wirklich alles vergessen, was du mir beigebracht hast?',pilotConfirm('alles vergessen','forgetAll'));
     if(r=t.match(/^vergiss\s+(?:nr\.?\s*)?(\d+)/i)){const it=pilotMemItems()[Number(r[1])-1];return it?say('Soll ich das wirklich vergessen? „'+it.text+'“',pilotConfirm('vergessen','forgetItem',it.id)):say('Diese Nummer kenne ich nicht. Frag mich „Was weißt du?“, dann zeige ich dir die Liste.')}
     const taught=m.qa.find(x=>normal(x.q)===normal(t));
-    if(taught)return say(taught.a);
+    if(taught){if(taught.cmd){pilotMessage(q,'user');pilotFlags().skipUser=true;askBasic(taught.a);pilotFlags().skipUser=false;return}return say(taught.a)}
+    const talk=pilotSmallTalk(t);if(talk)return say(talk);
     askBasic(q);
   }
 
