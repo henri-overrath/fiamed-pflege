@@ -893,7 +893,7 @@ body{margin:0;background:var(--bg);font:15px/1.55 -apple-system,BlinkMacSystemFo
   function roleAllows(id){return isLead()?!['dayplan','worktime','todayMaterials'].includes(id):true}
   function renderNav(){
     const nav=[['home','⌂','Startseite'],['dayplan','◷','Heutige Tour'],['patients','♙','Patienten'],['week','▣','Tagesplanung'],['materials','📦','Material'],['dashboard','▦','Tagesbilanz'],['inventory','🗃','Lager'],['statistics','◔','Statistiken'],['month','🗓','Monat'],['settings','⚙','Einstellungen'],['worktime','◷','Arbeitszeit'],['calendar','▤','Kalender'],['reports','📋','Berichte']].filter(([id])=>roleAllows(id));
-    $('#nav').innerHTML=nav.map(([id,i,t])=>`<button class="nav-item" data-view="${id}">${i}<span>${t}</span></button>`).join('')+'<button class="nav-item" id="sidebarPilot" type="button">🩺<span>Fia</span></button><button class="nav-item" id="reportBug" type="button">✉️<span>Fehler melden</span></button>';
+    $('#nav').innerHTML=nav.map(([id,i,t])=>`<button class="nav-item" data-view="${id}">${i}<span>${t}</span></button>`).join('')+(isChefSide()?'<button class="nav-item" id="navFachkraefte" type="button">👥<span>Fachkräfte</span></button>':'')+'<button class="nav-item" id="sidebarPilot" type="button">🩺<span>Fia</span></button><button class="nav-item" id="reportBug" type="button">✉️<span>Fehler melden</span></button>';
     $('#mobileNav').innerHTML=nav.filter(([id])=>id!=='dashboard').slice(0,5).map(([id,i,t])=>`<button data-view="${id}"><span>${i}</span><span>${t}</span></button>`).join('');
   }
   function setRole(role,name){
@@ -984,6 +984,9 @@ body{margin:0;background:var(--bg);font:15px/1.55 -apple-system,BlinkMacSystemFo
     const existing=state.tourFeedback[date];
     if(existing&&!confirm(`Für ${new Date(`${date}T12:00`).toLocaleDateString('de-DE')} ist schon eine Rückmeldung${existing.from?` von ${existing.from}`:''} gespeichert. Durch die neue ersetzen?`))return;
     state.tourFeedback[date]={from:String(pkg.from||''),receivedAt:Date.now(),km:Number(pkg.km||0),entries:(pkg.entries||[]).map(e=>({name:String(e.name||''),done:Boolean(e.done),time:String(e.time||''),minutes:Number(e.minutes||0),materials:Array.isArray(e.materials)?e.materials.map(String):[],note:String(e.note||'')}))};
+    /* Zusätzlich im Verlauf ablegen (je Fachkraft und Tag), damit die Chefin pro Fachkraft ein Profil sehen kann. */
+    state.tourFeedbackLog=(Array.isArray(state.tourFeedbackLog)?state.tourFeedbackLog:[]).filter(x=>!(x.date===date&&normal(x.from||'')===normal(pkg.from||'')));
+    state.tourFeedbackLog.push({date,...state.tourFeedback[date]});
     save('Rückmeldung empfangen');
     renderAll();
     const done=state.tourFeedback[date].entries.filter(x=>x.done).length;
@@ -1038,6 +1041,43 @@ body{margin:0;background:var(--bg);font:15px/1.55 -apple-system,BlinkMacSystemFo
     const received=new Date(fb.receivedAt).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     return `<div class="feedback-panel"><p><b>Rückmeldung${fb.from?` von ${esc(fb.from)}`:''}:</b> ${erledigt} von ${(fb.entries||[]).length} erledigt${fb.km?` · ${fb.km} km`:''} <small>(empfangen ${esc(received)})</small></p>${btn}</div>`;
   }
+  /* ---------- Chefin: Fachkräfte-Profile ----------
+     Zeigt pro Fachkraft, was ihre Rückmeldungen (FIAMED-STATUS-1) enthalten: Tage, Besuche, Zeiten, Material, Notizen, Kilometer.
+     Bewusst OHNE Wundfotos: Fotos werden nicht übertragen (Entscheidung liegt bei Papa, siehe GitHub-Issue #101). */
+  function feedbackLog(){
+    const log=Array.isArray(state.tourFeedbackLog)?[...state.tourFeedbackLog]:[];
+    Object.entries(state.tourFeedback||{}).forEach(([date,fb])=>{if(fb&&!log.some(x=>x.date===date&&normal(x.from||'')===normal(fb.from||'')))log.push({date,...fb})});
+    return log;
+  }
+  function fachkraefteGroups(){
+    const g=new Map();
+    feedbackLog().forEach(r=>{const k=normal(r.from||'')||'unbekannt';if(!g.has(k))g.set(k,{name:String(r.from||'').trim()||'Unbekannte Fachkraft',days:[]});g.get(k).days.push(r)});
+    g.forEach(v=>v.days.sort((a,b)=>String(b.date).localeCompare(String(a.date))));
+    return [...g.values()].sort((a,b)=>a.name.localeCompare(b.name,'de'));
+  }
+  const fkDay=date=>new Date(date+'T12:00').toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'});
+  function openFachkraefteList(){
+    const groups=fachkraefteGroups();
+    const rows=groups.map((f,i)=>{const last=f.days[0],done=(last.entries||[]).filter(x=>x.done).length;return `<button type="button" class="fk-row" data-fk="${i}"><span class="avatar">${initials(f.name)}</span><span class="fk-who"><b>${esc(f.name)}</b><small>Zuletzt ${esc(fkDay(last.date))} · ${done} von ${(last.entries||[]).length} erledigt</small></span><span class="row-chevron" aria-hidden="true">›</span></button>`}).join('');
+    $('#modalContent').innerHTML=`<div class="modal-inner modal-form fk-modal"><h2>👥 Fachkräfte</h2><p>Tippe auf eine Fachkraft, um ihr Profil mit allen Rückmeldungen zu sehen.</p>${rows?`<div class="fk-list">${rows}</div>`:'<p class="empty-note">Noch keine Rückmeldung empfangen. Sobald eine Fachkraft abends ihre Rückmeldung schickt und du sie hier einfügst, erscheint sie in dieser Liste.</p>'}<div class="modal-actions"><button type="button" id="closeModal" class="btn secondary">Schließen</button><button type="button" id="fkReceive" class="btn">📥 Rückmeldung empfangen</button></div></div>`;
+    const d=$('#modal');if(!d.open)d.showModal();$('#closeModal').onclick=()=>d.close();
+    $('#fkReceive').onclick=()=>{d.close();openFeedbackReceive()};
+    $('#modalContent .fk-list')?.addEventListener('click',e=>{const b=e.target.closest('[data-fk]');if(b)openFachkraftProfile(groups[Number(b.dataset.fk)])});
+  }
+  function openFachkraftProfile(f){
+    if(!f)return;
+    const today=new Date();today.setDate(today.getDate()-6);const cutoff=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+    const week=f.days.filter(r=>String(r.date)>=cutoff),weekDone=week.flatMap(r=>(r.entries||[]).filter(x=>x.done)),mins=weekDone.map(x=>Number(x.minutes||0)).filter(Boolean);
+    const km=week.reduce((t,r)=>t+Number(r.km||0),0),avg=mins.length?Math.round(mins.reduce((a,b)=>a+b,0)/mins.length):0;
+    const patients=new Map();f.days.forEach(r=>(r.entries||[]).filter(x=>x.done).forEach(x=>{const k=normal(x.name);const o=patients.get(k)||{name:x.name,n:0,last:r.date};o.n++;if(String(r.date)>String(o.last))o.last=r.date;patients.set(k,o)}));
+    const pat=[...patients.values()].sort((a,b)=>comparePatientNames(a.name,b.name)).map(o=>`<span class="fk-chip">${esc(o.name)} <small>${o.n}×</small></span>`).join('');
+    const days=f.days.map(r=>{const es=(r.entries||[]).slice().sort((a,b)=>comparePatientNames(a.name,b.name)),done=es.filter(x=>x.done).length;
+      const lines=es.map(x=>`<div class="fk-entry ${x.done?'done':'open'}"><div class="fk-entry-head"><b>${esc(x.name)}</b><span>${x.done?'✓ '+esc([x.time,x.minutes?x.minutes+' Min.':''].filter(Boolean).join(' · ')||'erledigt'):'offen'}</span></div>${(x.materials||[]).length?`<div class="fk-mats">${x.materials.map(m=>`<span class="rc-mat">${esc(m)}</span>`).join('')}</div>`:''}${x.note?`<p class="fk-note">📝 ${esc(x.note)}</p>`:''}</div>`).join('')||'<p class="empty-note">Keine Patienten in dieser Rückmeldung.</p>';
+      return `<details class="rc-month"><summary>${esc(fkDay(r.date))} <span class="rc-chip">${done} von ${es.length} erledigt</span>${r.km?`<span class="rc-chip">${r.km} km</span>`:''}</summary>${lines}</details>`}).join('');
+    $('#modalContent').innerHTML=`<div class="modal-inner modal-form fk-modal"><button type="button" class="back-pill" id="fkBack">← Alle Fachkräfte</button><div class="fk-head"><span class="avatar">${initials(f.name)}</span><div><h2>${esc(f.name)}</h2><small>${f.days.length} Tag${f.days.length===1?'':'e'} mit Rückmeldung</small></div></div><div class="fk-stats"><div><b>${weekDone.length}</b><span>Besuche (7 Tage)</span></div><div><b>${km?km.toFixed(1).replace('.',','):'0'}</b><span>Kilometer</span></div><div><b>${avg||'–'}</b><span>Ø Minuten</span></div></div>${pat?`<h3 class="fk-h3">Patienten</h3><div class="fk-chips">${pat}</div>`:''}<h3 class="fk-h3">Tage</h3>${days}<p class="fk-hint">🩹 Wundfotos werden aus Datenschutzgründen nicht übertragen.</p><div class="modal-actions"><button type="button" id="closeModal" class="btn secondary">Schließen</button></div></div>`;
+    const d=$('#modal');if(!d.open)d.showModal();$('#closeModal').onclick=()=>d.close();$('#fkBack').onclick=openFachkraefteList;
+  }
+  document.addEventListener('click',e=>{if(e.target.closest('#navFachkraefte')){document.querySelector('.sidebar')?.classList.remove('open');document.querySelector('.drawer-backdrop')?.classList.remove('show');openFachkraefteList()}});
   function feedbackBadge(date,patient){
     const fb=feedbackByName(date);
     if(!fb)return '';

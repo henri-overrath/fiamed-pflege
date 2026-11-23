@@ -266,3 +266,16 @@ body.dark .reminder{background:#3a3016;color:#f0b83e;border-color:#5a4a1e}
 body.dark .home-date{background:#ffffff14;color:var(--ink)}
 body.dark .callout{background:var(--blue-soft);color:var(--muted)}
 body.dark .btn.danger,body.dark #deleteLatestReport{background:#3a1f26;color:#ff9aa6;border-color:#5a2a34}
+
+/* Chefin: Fachkräfte-Profile */
+.fk-modal .fk-list{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.fk-row{display:flex;align-items:center;gap:12px;width:100%;border:1px solid var(--line);border-radius:16px;padding:12px;background:var(--card);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.fk-row:hover{border-color:var(--blue);background:var(--blue-soft)}.fk-who{flex:1;min-width:0}.fk-who small{display:block;color:var(--muted)}
+.fk-head{display:flex;align-items:center;gap:12px;margin:6px 0 12px}.fk-head h2{margin:0}.fk-head small{color:var(--muted)}
+.fk-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:6px}.fk-stats div{background:var(--blue-soft);border-radius:14px;padding:10px;text-align:center}.fk-stats b{display:block;font-size:20px}.fk-stats span{font-size:11.5px;color:var(--muted)}
+.fk-h3{margin:14px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--blue)}
+.fk-chips{display:flex;flex-wrap:wrap;gap:6px}.fk-chip{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:13px}.fk-chip small{color:var(--muted)}
+.fk-entry{padding:8px 0;border-top:1px solid var(--line)}.fk-entry-head{display:flex;justify-content:space-between;gap:8px}.fk-entry.open .fk-entry-head span{color:var(--muted)}.fk-entry.done .fk-entry-head span{color:#16754a}
+body.dark .fk-entry.done .fk-entry-head span{color:#7fe0b0}
+.fk-mats{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.fk-note{margin:4px 0 0;font-size:13px;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere}
+.fk-hint{margin:12px 0 0;font-size:12.5px;color:var(--muted)}
