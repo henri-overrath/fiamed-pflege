@@ -262,10 +262,10 @@ $('#woundCompareBtn')?.addEventListener('click',()=>{const ids=selectedWoundIds(
   function printReport(text=reportText()){const w=window.open('','_blank');if(!w)return toast('Druckansicht wurde blockiert.');w.document.write(`<title>FiaMed Tagesbericht</title><pre style="max-width:800px;margin:40px auto;padding:36px;font:15px/1.6 system-ui;white-space:pre-wrap;color:#172033">${esc(text)}</pre>`);w.document.close();w.focus();w.print()}
 
   /* Fia – finale, lokale Assistenzschicht mit Bestätigung vor Änderungen */
-  function pilotMessage(text,kind='assistant',extra=''){const chat=$('#pilotChat');if(!chat)return;if(kind==='user'&&pilotFlags().skipUser){pilotFlags().skipUser=false;return}if(kind==='assistant')text=pilotTone(text);chat.insertAdjacentHTML('beforeend','<div class="chat-message '+kind+'">'+esc(text)+extra+'</div>');chat.scrollTop=chat.scrollHeight}
+  function pilotMessage(text,kind='assistant',extra=''){const chat=$('#pilotChat');if(!chat)return;if(kind==='user'&&pilotFlags().skipUser){pilotFlags().skipUser=false;return}if(kind==='assistant')text=pilotTone(text);chat.insertAdjacentHTML('beforeend','<div class="chat-message '+kind+'">'+esc(text)+(kind==='assistant'&&window.speechSynthesis?'<button type="button" class="pilot-speak" data-speak="'+esc(text)+'" aria-label="Vorlesen" title="Vorlesen">🔊</button>':'')+extra+'</div>');chat.scrollTop=chat.scrollHeight;if(kind==='assistant'&&pilotMem().autoSpeak)pilotSpeak(text)}
   function pilotConfirm(label,action,id=''){return '<div class="pilot-confirm" data-pilot-action="'+esc(action)+'" data-pilot-id="'+esc(id)+'"><button type="button" class="confirm" data-pilot-confirm>Ja, '+esc(label)+'</button><button type="button" class="cancel" data-pilot-cancel>Abbrechen</button></div>'}
   function renderPilot(){
-    $('#pilot').innerHTML='<div class="pilot-head"><div><div class="pilot-title">🩺 Fia</div><div class="pilot-sub">Lokal · Ihre Daten bleiben auf diesem Gerät</div></div><button id="pilotCool" type="button" class="pilot-cool">✨ Cooler machen</button><button id="closePilot" class="icon-btn" aria-label="Fia schließen">×</button></div><div id="pilotChat" class="pilot-chat"><div class="pilot-welcome"><b>Hallo, ich bin Fia!</b><br>Ich helfe bei Tour, Patienten, Material und Tagesbericht und merke mir Dinge: „Ich heiße …“, „Merk dir: …“ oder „Merk dir: Frage = Antwort“. Änderungen führe ich erst nach deiner Bestätigung aus.</div></div><div class="pilot-suggestions"><button type="button" data-ask="Was fehlt heute?">👥 Was fehlt heute?</button><button type="button" data-ask="Zeige Material zum Nachbestellen">🛒 Nachbestellung</button><button type="button" data-ask="Zeige meine Tour">🚗 Meine Tour</button><button type="button" data-ask="Öffne Tagesbericht">📋 Tagesbericht</button></div><form id="pilotForm" class="pilot-form"><input id="pilotInput" autocomplete="off" placeholder="Frag mich etwas …" aria-label="Frage an Fia"><button class="btn" type="submit">Senden</button></form>';
+    $('#pilot').innerHTML='<div class="pilot-head"><div><div class="pilot-title">🩺 Fia</div><div class="pilot-sub">Lokal · Ihre Daten bleiben auf diesem Gerät</div></div><button id="pilotCool" type="button" class="pilot-cool">✨ Cooler machen</button>'+(window.speechSynthesis?'<button id="pilotSpeakToggle" type="button" class="pilot-cool" aria-pressed="'+(pilotMem().autoSpeak?'true':'false')+'">'+(pilotMem().autoSpeak?'🔊 Vorlesen: an':'🔇 Vorlesen: aus')+'</button>':'')+'<button id="closePilot" class="icon-btn" aria-label="Fia schließen">×</button></div><div id="pilotChat" class="pilot-chat"><div class="pilot-welcome"><b>Hallo, ich bin Fia!</b><br>Ich helfe bei Tour, Patienten, Material und Tagesbericht und merke mir Dinge: „Ich heiße …“, „Merk dir: …“ oder „Merk dir: Frage = Antwort“. Änderungen führe ich erst nach deiner Bestätigung aus.</div></div><div class="pilot-suggestions"><button type="button" data-ask="Was fehlt heute?">👥 Was fehlt heute?</button><button type="button" data-ask="Zeige Material zum Nachbestellen">🛒 Nachbestellung</button><button type="button" data-ask="Zeige meine Tour">🚗 Meine Tour</button><button type="button" data-ask="Öffne Tagesbericht">📋 Tagesbericht</button></div><form id="pilotForm" class="pilot-form"><input id="pilotInput" autocomplete="off" placeholder="Frag mich etwas …" aria-label="Frage an Fia">'+((window.SpeechRecognition||window.webkitSpeechRecognition)?'<button type="button" id="pilotMic" class="pilot-mic" aria-label="Diktieren: Mikrofon an/aus" title="Diktieren">🎤</button>':'')+'<button class="btn" type="submit">Senden</button></form>';
     $('#closePilot').onclick=()=>pilotOpen(false);
     $('#pilotForm').onsubmit=e=>{e.preventDefault();const q=$('#pilotInput').value.trim();if(q){$('#pilotInput').value='';ask(q)}};
     $('#pilot').onclick=e=>{const coolButton=e.target.closest('#pilotCool');if(coolButton){pilotCoolMenu();return}const toneButton=e.target.closest('[data-tone]');if(toneButton){pilotSetTone(toneButton.dataset.tone);return}const askButton=e.target.closest('[data-ask]');if(askButton){ask(askButton.dataset.ask);return}const confirm=e.target.closest('[data-pilot-confirm]');if(confirm){const box=confirm.closest('[data-pilot-action]');runPilotAction(box.dataset.pilotAction,box.dataset.pilotId);return}const cancel=e.target.closest('[data-pilot-cancel]');if(cancel){cancel.closest('[data-pilot-action]').remove();pilotMessage('Alles klar – ich habe nichts verändert.');}};
@@ -393,12 +393,92 @@ $('#woundCompareBtn')?.addEventListener('click',()=>{const ids=selectedWoundIds(
     if(/^(nein|nee|nope)[.!]*$/.test(n))return 'Okay, kein Problem. 😊';
     return null;
   }
+  /* Freundliche Umschreibungen wie „kannst du mir bitte die Tour zeigen“ auf den Kern kürzen, damit Fias Stichwort-Antworten greifen. */
+  /* Führt eine Bitte aus (Ansicht öffnen oder Stichwort-Antwort); wird auch für gelernte Aktionen benutzt. */
+  function pilotRun(text){
+    const view=pilotNavTarget(text);if(view){show(view.id);pilotMessage('📂 '+view.label+' offen.');return}
+    askBasic(pilotUnwrap(text));
+  }
+  function pilotUnwrap(t){
+    let x=String(t).trim();
+    x=x.replace(/^(?:(?:ok|okay|hey|fia|also|und|dann|bitte|mal|jetzt)[,\s]+)+/i,'');
+    x=x.replace(/^(?:kannst|könntest|koenntest|kann|würdest|wuerdest|magst)\s+du\s+(?:(?:bitte|mal|jetzt|schnell)\s+)*(?:mir\s+)?/i,'');
+    x=x.replace(/^(?:ich\s+(?:möchte|moechte|will|würde\s+gern|wuerde\s+gern|brauche|bräuchte|braeuchte))\s+(?:(?:bitte|mal|jetzt)\s+)*/i,'');
+    x=x.replace(/^(?:sollst|solst|soll)\s+du\s+/i,'').replace(/\s+(?:bitte|mal|schnell)\s*[?.!]*$/i,'').replace(/[?.!]+$/,'');
+    return x.trim()||String(t).trim();
+  }
+  /* „Patientenliste öffnen“, „zeig mir das Lager“, „geh zu den Statistiken“ … → die passende Ansicht. Braucht ein Öffnen-Wort, damit Fragen wie „Wie viele Patienten heute?“ nicht fälschlich umspringen. */
+  function pilotNavTarget(t){
+    const x=String(t).toLowerCase();
+    if(!/(?:(?:^|[^a-zäöüß])[öo]e?f{1,2}n|zeig|anzeig|(?:^|[^a-zäöüß])geh(?:e)?(?:[^a-zäöüß]|$)|wechsel|bring\s+mich|spring|navigier)/.test(x))return null;
+    if(/nachbestell|brauche|fehlt|knapp|verwendet|heute\s+noch|tourplan\s+erstell/.test(x))return null;
+    const map=[['patients','Die Patientenliste ist',/patient/],['inventory','Das Lager ist',/lager|inventar|bestand/],['materials','Die Materialliste ist',/material/],['statistics','Die Statistik ist',/statistik|auswertung/],['month','Die Monatsübersicht ist',/monat/],['calendar','Der Kalender ist',/kalender/],['settings','Die Einstellungen sind',/einstellung/],['worktime','Die Arbeitszeit ist',/arbeitszeit/],['reports','Die Berichte sind',/bericht/],['week','Die Tagesplanung ist',/tagesplan|wochen|woche|planung/],['dayplan','Deine heutige Tour ist',/tour/],['dashboard','Die Tagesbilanz ist',/tagesbilanz|dashboard|bilanz/],['home','Die Startseite ist',/startseite|home|übersicht|uebersicht/]];
+    const hit=map.find(([,,re])=>re.test(x));
+    if(!hit)return null;
+    if(typeof roleAllows==='function'&&!roleAllows(hit[0]))return null;
+    return {id:hit[0],label:hit[1]};
+  }
+  /* Vorlesen (Sprachausgabe des Geräts). Es werden NUR Stimmen benutzt, die auf dem Gerät liegen (localService), damit nichts ins Internet geht. */
+  /* Text fürs Vorlesen säubern: keine Emojis, keine Sonderzeichen und keine (unsichtbaren) Leerzeichen-Zeichen, die die Stimme sonst „vorliest“. */
+  function pilotSpeakText(t){
+    return String(t)
+      .replace(/[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]/g,' ')
+      .replace(/[\u200b-\u200f\u2028\u2029\u2060\ufeff\ufe0e\ufe0f]/g,'')
+      .replace(/\p{Extended_Pictographic}/gu,'')
+      .replace(/(\d)\s*[×x]\s*(?=\S)/g,'$1 mal ')
+      .replace(/[„“”"'‚‘’«»]/g,'')
+      .replace(/[|•·▪◦●○■□▶►→➡⇒✓✔✗✘★☆]/g,' , ')
+      .replace(/[–—]/g,', ')
+      .replace(/\n+/g,'. ')
+      .replace(/\s+/g,' ')
+      .replace(/(\s*[,.]){2,}/g,'.')
+      .replace(/\s+([,.!?])/g,'$1')
+      .replace(/([:;,])\s*\./g,'$1')
+      .replace(/^[\s,.;:]+/,'')
+      .trim();
+  }
+  function pilotVoice(){const vs=(window.speechSynthesis&&speechSynthesis.getVoices())||[];const de=vs.filter(v=>/^de([-_]|$)/i.test(v.lang)&&v.localService);return de.find(v=>/anna|helena|petra|katja|marlene/i.test(v.name))||de[0]||null}
+  function pilotSpeak(text){
+    if(!window.speechSynthesis){toast('Vorlesen geht auf diesem Gerät nicht.');return}
+    const ss=speechSynthesis;ss.cancel();
+    const t=pilotSpeakText(text);if(!t)return;
+    const go=()=>{const v=pilotVoice();if(!v){toast('Auf diesem Gerät ist keine deutsche Stimme zum Vorlesen installiert.');return}const u=new SpeechSynthesisUtterance(t);u.voice=v;u.lang=v.lang||'de-DE';u.rate=1;u.onend=u.onerror=()=>{pilotFlags().speaking=''};pilotFlags().speaking=text;ss.speak(u)};
+    if(ss.getVoices().length)go();else{ss.addEventListener('voiceschanged',go,{once:true});setTimeout(()=>{if(!ss.getVoices().length)go()},800)}
+  }
+  document.addEventListener('click',e=>{
+    const sp=e.target.closest('.pilot-speak');
+    if(sp){const text=sp.dataset.speak||'';if(window.speechSynthesis&&speechSynthesis.speaking&&pilotFlags().speaking===text){speechSynthesis.cancel();pilotFlags().speaking='';return}pilotSpeak(text);return}
+    const tg=e.target.closest('#pilotSpeakToggle');
+    if(tg){const m=pilotMem();m.autoSpeak=!m.autoSpeak;save('Fia: Vorlesen '+(m.autoSpeak?'an':'aus'));tg.setAttribute('aria-pressed',String(m.autoSpeak));tg.textContent=m.autoSpeak?'🔊 Vorlesen: an':'🔇 Vorlesen: aus';if(!m.autoSpeak&&window.speechSynthesis)speechSynthesis.cancel();else pilotMessage('Okay, ich lese ab jetzt meine Antworten vor.')}
+  });
+  /* Diktieren: Web-Speech-API des Browsers. ⚠️ Je nach Handy wird die Sprache dafür zur Erkennung ins Internet geschickt (Chrome/Android: Google, iPhone: Apple).
+     Deshalb gibt es VORHER einen Warnhinweis (einmalig bestätigen); es werden keine Gesundheitsdaten gespeichert, der Text landet nur im Eingabefeld. */
+  function pilotDictate(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('Diktieren geht auf diesem Gerät nicht. Nutze das Mikrofon deiner Tastatur.');return}
+    const btn=$('#pilotMic'),input=$('#pilotInput');if(!btn||!input)return;
+    const live=pilotFlags().rec;if(live){try{live.stop()}catch{}return}
+    const m=pilotMem();
+    if(!m.micOk){
+      pilotMessage('🎤 Bevor du diktierst: Dein Handy schickt die Sprache vielleicht zur Erkennung ins Internet (Google oder Apple). Sprich deshalb keine Patientennamen und keine Gesundheitsdaten ein. Tippe nochmal auf 🎤, wenn das für dich okay ist.');
+      m.micOk=true;save('Fia: Diktier-Hinweis bestätigt');return}
+    const rec=new SR();rec.lang='de-DE';rec.interimResults=true;rec.continuous=false;
+    rec.onstart=()=>{pilotFlags().rec=rec;btn.classList.add('listening');btn.textContent='⏹';btn.setAttribute('aria-pressed','true');pilotFlags().heard=false;clearTimeout(pilotFlags().micTimer);pilotFlags().micTimer=setTimeout(()=>{if(!pilotFlags().heard){try{rec.stop()}catch{}toast('Ich höre nichts. Prüfe das Mikrofon, oder nutze das Mikrofon deiner Tastatur zum Diktieren.')}},9000)};
+    rec.onresult=e=>{pilotFlags().heard=true;let txt='';for(let i=0;i<e.results.length;i++)txt+=e.results[i][0].transcript;input.value=txt.trim()};
+    rec.onerror=e=>{toast(e.error==='not-allowed'||e.error==='service-not-allowed'?'Das Mikrofon ist nicht erlaubt. Bitte in den Handy-Einstellungen erlauben.':e.error==='no-speech'?'Ich habe nichts gehört.':e.error==='network'?'Zum Erkennen braucht dein Handy Internet. Nutze sonst das Mikrofon deiner Tastatur.':'Diktieren hat nicht geklappt. Nutze das Mikrofon deiner Tastatur.')};
+    rec.onend=()=>{clearTimeout(pilotFlags().micTimer);pilotFlags().rec=null;btn.classList.remove('listening');btn.textContent='🎤';btn.setAttribute('aria-pressed','false');input.focus()};
+    try{rec.start()}catch{toast('Diktieren konnte nicht starten.')}
+  }
+  document.addEventListener('click',e=>{if(e.target.closest('#pilotMic'))pilotDictate()});
   function ask(q){
     const t=q.trim().replace(/^((?:merk(?:e)?\s+dir[:,]?\s+)?(?:lerne[:,]?\s+)?wenn\s+ich\s+)(?!(?:(?:jetzt|mal)\s+)*(?:sage|sag|schreibe|schreib|tippe|tipp|eingebe|frage|frag)\b)(.+?)\s+(sage|sag|schreibe|schreib|tippe|tipp|eingebe|frage|frag)(\s*[,;]?\s+(?:dann\s+|so\s+|(?=(?:sollst|solst|soll|musst|kannst)\s+du\b)))/i,'$1$3 $2$4'),m=pilotMem();let r; /* So spricht man: „Wenn ich 123 sage, dann …“ (Verb am Ende). Wird hier zu „Wenn ich sage 123, dann …“ umgestellt, damit die Regel-Erkennung unten greift. */
     const say=(text,extra='')=>{pilotMessage(q,'user');pilotMessage(text,'assistant',extra)};
     if(r=t.match(/^ich\s+hei(?:ß|ss)e\s+(.+?)[.!]?$/i)){m.name=pilotCap(r[1]);save('Fia hat sich einen Namen gemerkt');return say('Schön, dich kennenzulernen, '+m.name+'! 😊 Ich habe mir deinen Namen gemerkt.')}
     /* „Wenn ich 123 sage, dann öffne den Tagesbericht“ oder „… dann antworte Hallo“: Fia lernt eine Regel (Auslöser → Aktion oder Antwort). */
-    if(r=t.match(/^(?:merk(?:e)?\s+dir[:,]?\s+)?(?:lerne[:,]?\s+)?wenn\s+ich\s+(?:sage|sag|schreibe|schreib|tippe|tipp|eingebe|frage|frag)\s*[:,]?\s*(?:„|"|“|')?(.+?)(?:“|"|”|')?\s*[,;]?\s+(?:dann|so)\s+(.+)$/i)){
+    if(r=t.match(/^(?:merk(?:e)?\s+dir[:,]?\s+)?(?:lerne[:,]?\s+)?wenn\s+ich\s+(?:jetzt\s+|mal\s+)*(?:sage|sag|schreibe|schreib|tippe|tipp)\s+(?:sollst|solst|soll|musst|kannst)\s+du\s+(.+)$/i)){
+      /* Satz ohne Auslöser („Wenn ich jetzt sage, sollst du die Patientenliste öffnen“): gleich ausführen und zeigen, wie man ein Wort festlegt. */
+      pilotMessage(q,'user');pilotFlags().skipUser=true;ask(r[1].trim());pilotFlags().skipUser=false;
+      return pilotMessage('Ich habe es gleich gemacht. 👍 Wenn du es künftig mit einem Wort auslösen willst, sag: „Wenn ich 123 sage, dann '+r[1].trim()+'“.')}
+    if(r=t.match(/^(?:merk(?:e)?\s+dir[:,]?\s+)?(?:lerne[:,]?\s+)?wenn\s+ich\s+(?:sage|sag|schreibe|schreib|tippe|tipp|eingebe|frage|frag)\s*[:,]?\s*(?:„|"|“|')?(.+?)(?:“|"|”|')?\s*[,;]?\s+(?:dann\s+|so\s+|(?=(?:sollst|solst|soll|musst|kannst)\s+du\b))(.+)$/i)){
       const trigger=r[1].trim().slice(0,60);let act=r[2].trim().replace(/^(?:(?:sollst|solst|soll|sollte|musst|kannst|bitte|du|dann)\s+)+/i,'').trim().slice(0,160);
       if(!trigger||!act)return say('Das habe ich nicht ganz verstanden. Sag es so: „Wenn ich 123 sage, dann öffne den Tagesbericht“.');
       const ans=act.match(/^(?:antworte(?:\s+mit)?|sag(?:e)?(?:\s+mir)?|schreib(?:e)?)\s+(.+)$/i);
@@ -417,8 +497,10 @@ $('#woundCompareBtn')?.addEventListener('click',()=>{const ids=selectedWoundIds(
     if(/^vergiss\s+alles/i.test(t))return say('Soll ich wirklich alles vergessen, was du mir beigebracht hast?',pilotConfirm('alles vergessen','forgetAll'));
     if(r=t.match(/^vergiss\s+(?:nr\.?\s*)?(\d+)/i)){const it=pilotMemItems()[Number(r[1])-1];return it?say('Soll ich das wirklich vergessen? „'+it.text+'“',pilotConfirm('vergessen','forgetItem',it.id)):say('Diese Nummer kenne ich nicht. Frag mich „Was weißt du?“, dann zeige ich dir die Liste.')}
     const taught=m.qa.find(x=>normal(x.q)===normal(t));
-    if(taught){if(taught.cmd){pilotMessage(q,'user');pilotFlags().skipUser=true;askBasic(taught.a);pilotFlags().skipUser=false;return}return say(taught.a)}
+    if(taught){if(taught.cmd){pilotMessage(q,'user');pilotFlags().skipUser=true;pilotRun(taught.a);pilotFlags().skipUser=false;return}return say(taught.a)}
     const talk=pilotSmallTalk(t);if(talk)return say(talk);
+    const view=pilotNavTarget(t);if(view){show(view.id);return say('📂 '+view.label+' offen.')}
+    const plain=pilotUnwrap(t);if(plain!==t){pilotMessage(q,'user');pilotFlags().skipUser=true;askBasic(plain);pilotFlags().skipUser=false;return}
     askBasic(q);
   }
 
