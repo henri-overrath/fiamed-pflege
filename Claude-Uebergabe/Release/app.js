@@ -394,7 +394,7 @@ $('#woundCompareBtn')?.addEventListener('click',()=>{const ids=selectedWoundIds(
     return null;
   }
   function ask(q){
-    const t=q.trim(),m=pilotMem();let r;
+    const t=q.trim().replace(/^((?:merk(?:e)?\s+dir[:,]?\s+)?(?:lerne[:,]?\s+)?wenn\s+ich\s+)(?!(?:(?:jetzt|mal)\s+)*(?:sage|sag|schreibe|schreib|tippe|tipp|eingebe|frage|frag)\b)(.+?)\s+(sage|sag|schreibe|schreib|tippe|tipp|eingebe|frage|frag)(\s*[,;]?\s+(?:dann\s+|so\s+|(?=(?:sollst|solst|soll|musst|kannst)\s+du\b)))/i,'$1$3 $2$4'),m=pilotMem();let r; /* So spricht man: „Wenn ich 123 sage, dann …“ (Verb am Ende). Wird hier zu „Wenn ich sage 123, dann …“ umgestellt, damit die Regel-Erkennung unten greift. */
     const say=(text,extra='')=>{pilotMessage(q,'user');pilotMessage(text,'assistant',extra)};
     if(r=t.match(/^ich\s+hei(?:ß|ss)e\s+(.+?)[.!]?$/i)){m.name=pilotCap(r[1]);save('Fia hat sich einen Namen gemerkt');return say('Schön, dich kennenzulernen, '+m.name+'! 😊 Ich habe mir deinen Namen gemerkt.')}
     /* „Wenn ich 123 sage, dann öffne den Tagesbericht“ oder „… dann antworte Hallo“: Fia lernt eine Regel (Auslöser → Aktion oder Antwort). */
