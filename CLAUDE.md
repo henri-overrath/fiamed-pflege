@@ -220,6 +220,11 @@ erlaubt, weil nichts das Gerät verlässt; Papa bitte gegenchecken. Im Code: `as
 **Regeln lernen (seit 14.11.2026):** „Wenn ich 123 sage, dann öffne den Tagesbericht“ legt einen Auslöser an;
 beim nächsten „123“ führt Fia die Aktion über seine eigenen Stichwort-Antworten (`askBasic`) aus. Mit
 „… dann antworte …“ gibt er einen festen Text zurück. Gespeichert in `state.pilotMemory.qa` (`cmd:true` = Aktion).
+Fia versteht außerdem freie Bitten („Kannst du mir bitte die Statistik zeigen?“, „geh zu den Einstellungen“,
+„Wenn ich jetzt sage, sollst du die Patientenliste öffnen“ → wird gleich ausgeführt) über `pilotNavTarget`/`pilotUnwrap`/`pilotRun`.
+**Diktieren (🎤 neben „Senden“):** Web-Speech-API des Browsers (`pilotDictate`). ⚠️ Je nach Gerät geht die Sprache dafür
+zur Erkennung ins Internet (Chrome/Android: Google, iPhone: Apple) — deshalb einmaliger Warnhinweis vorher, nur im Chat-Eingabefeld,
+nichts wird gespeichert. **Papa bitte entscheiden (Regel 2)**; in der nativen App fehlen dafür ggf. Mikrofon-/Spracherkennungs-Berechtigungen.
 Dazu etwas Smalltalk (`pilotSmallTalk`) und bei Unbekanntem ein konkreter Lernvorschlag. Weiter lokal, ohne Internet.
 
 **„✨ Cooler machen“** (Knopf in Fias Kopfzeile) wählt den Ton: Ernst (ohne Emojis), Freundlich, Locker.
