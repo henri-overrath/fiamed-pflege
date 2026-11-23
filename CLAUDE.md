@@ -217,6 +217,11 @@ Fia wiederholt nur, was man ihm selbst gesagt hat. Henri hat Patientennamen im G
 erlaubt, weil nichts das Gerät verlässt; Papa bitte gegenchecken. Im Code: `ask()` (Lernen) ruft
 `askBasic()` (die alten Stichwort-Antworten) auf.
 
+**Regeln lernen (seit 14.11.2026):** „Wenn ich 123 sage, dann öffne den Tagesbericht“ legt einen Auslöser an;
+beim nächsten „123“ führt Fia die Aktion über seine eigenen Stichwort-Antworten (`askBasic`) aus. Mit
+„… dann antworte …“ gibt er einen festen Text zurück. Gespeichert in `state.pilotMemory.qa` (`cmd:true` = Aktion).
+Dazu etwas Smalltalk (`pilotSmallTalk`) und bei Unbekanntem ein konkreter Lernvorschlag. Weiter lokal, ohne Internet.
+
 **„✨ Cooler machen“** (Knopf in Fias Kopfzeile) wählt den Ton: Ernst (ohne Emojis), Freundlich, Locker.
 Gespeichert in `state.pilotMemory.tone`; `pilotTone()` ändert nur die Wortwahl der Antworten.
 
